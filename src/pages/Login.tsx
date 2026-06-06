@@ -13,6 +13,14 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const signInWithProvider = async (provider: 'google' | 'facebook') => {
+    setError(null);
+    await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: window.location.origin },
+    });
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -85,6 +93,25 @@ export const Login: React.FC = () => {
             {loading ? 'רגע...' : mode === 'login' ? 'התחברות' : 'הרשמה'}
           </button>
         </form>
+
+        <div className="flex items-center gap-3 my-6">
+          <span className="flex-1 h-px bg-amber-100" />
+          <span className="text-xs text-stone-400">או המשיכו עם</span>
+          <span className="flex-1 h-px bg-amber-100" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button type="button" onClick={() => signInWithProvider('google')}
+            className="flex items-center justify-center gap-2 border border-amber-200 rounded-xl py-2.5 font-bold text-sm text-stone-700 hover:bg-amber-50 transition-colors duration-200">
+            <svg className="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.86c2.26-2.09 3.56-5.17 3.56-8.87z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3a7.4 7.4 0 0 1-11-3.9H1.13v3.09A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.07 14.19a7.2 7.2 0 0 1 0-4.38V6.72H1.13a12 12 0 0 0 0 10.56l3.94-3.09z"/><path fill="#EA4335" d="M12 4.77c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.13 6.72l3.94 3.09A7.18 7.18 0 0 1 12 4.77z"/></svg>
+            Google
+          </button>
+          <button type="button" onClick={() => signInWithProvider('facebook')}
+            className="flex items-center justify-center gap-2 border border-amber-200 rounded-xl py-2.5 font-bold text-sm text-stone-700 hover:bg-amber-50 transition-colors duration-200">
+            <svg className="w-5 h-5" viewBox="0 0 24 24"><path fill="#1877F2" d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.95.93-1.95 1.89v2.25h3.32l-.53 3.49h-2.79V24C19.61 23.1 24 18.1 24 12.07z"/></svg>
+            Facebook
+          </button>
+        </div>
 
         <p className="text-center text-xs text-stone-400 mt-6">
           <Link to="/" className="hover:text-amber-700">חזרה לדף הבית ←</Link>
