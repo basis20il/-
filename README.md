@@ -1,20 +1,25 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# מגדנות בטעם של עוד — אתר אינטרנט
 
-# Run and deploy your AI Studio app
+אתר תדמית והזמנות לקונדיטוריה "בטעם של עוד" בנתיבות. נבנה עם React + Vite + Tailwind + Supabase (אימות, מסד נתונים והרשאות).
 
-This contains everything you need to run your app locally.
+## הרצה מקומית
 
-View your app in AI Studio: https://ai.studio/apps/drive/1Ne9O49dY7Nwv1TDwLwhukN4Dxzd57_j7
+1. התקנת תלויות: `npm install`
+2. העתיקו את `.env.example` ל-`.env` ומלאו את פרטי הפרויקט ב-Supabase (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`)
+3. הרצה: `npm run dev`
 
-## Run Locally
+## פריסה (Cloudflare Pages)
 
-**Prerequisites:**  Node.js
+- Build command: `npm run build`
+- Build output directory: `dist`
+- משתני סביבה: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- חברו את הדומיין שלכם תחת Custom domains בפרויקט ה-Pages
 
+## ניהול
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+משתמש עם `is_admin = true` בטבלת `profiles` ב-Supabase מקבל גישה לעמוד הניהול (`/admin`) — הוספה/עריכה/מחיקה של מוצרים (כולל תמונות מקישור או מהמחשב), וצפייה וניהול סטטוס הזמנות.
+
+כדי להפוך משתמש קיים למנהל, הריצו ב-SQL editor של Supabase:
+```sql
+update profiles set is_admin = true where id = '<USER_UUID>';
+```

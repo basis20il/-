@@ -1,7 +1,7 @@
 {
-  "name": "מושלם-מבחן-אבחון-מ.ש.ה-(מוגבלות-שכלית-התפתחותית)",
+  "name": "migdanot-betaam-shel-od",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,8 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^6.26.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
