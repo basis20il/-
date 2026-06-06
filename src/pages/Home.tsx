@@ -27,7 +27,7 @@ export const Home: React.FC = () => {
         <div className="relative max-w-7xl mx-auto px-6 py-24 lg:py-36 grid lg:grid-cols-2 gap-12 items-center">
           <div className="animate-fade-in-up">
             <span className="inline-block bg-amber-100 text-amber-900 text-xs font-bold tracking-wide px-4 py-2 rounded-full mb-6">קונדיטוריה משפחתית בנתיבות מאז ומתמיד</span>
-            <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl font-bold text-amber-950 leading-[1.1] mb-6">
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-amber-950 leading-[1.1] mb-6">
               מגדנות<br/><span className="text-amber-700">בטעם של עוד</span>
             </h1>
             <p className="text-lg text-stone-600 max-w-xl leading-relaxed mb-10">

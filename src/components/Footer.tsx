@@ -5,7 +5,7 @@ export const Footer: React.FC = () => (
   <footer className="bg-amber-950 text-amber-100/80 mt-24">
     <div className="max-w-7xl mx-auto px-6 py-14 grid grid-cols-1 sm:grid-cols-3 gap-10">
       <div>
-        <p className="font-serif text-2xl text-white font-bold mb-2">בטעם של עוד</p>
+        <p className="text-2xl text-white font-extrabold mb-2">בטעם של עוד</p>
         <p className="text-sm leading-relaxed">קונדיטוריה משפחתית בלב נתיבות, אופים בכל הלב כל מה שמתוק וטעים — לאירועים, לשמחות ולכל יום.</p>
       </div>
       <div>

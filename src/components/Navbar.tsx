@@ -27,7 +27,7 @@ export const Navbar: React.FC = () => {
         <Link to="/" className="flex items-center gap-3 group">
           <span className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-700 to-amber-900 flex items-center justify-center text-white text-xl font-bold shadow-md group-hover:scale-105 transition-transform duration-300 font-serif">מ</span>
           <div className="leading-tight">
-            <p className="font-serif text-xl text-amber-900 font-bold">בטעם של עוד</p>
+            <p className="text-xl text-amber-900 font-extrabold">בטעם של עוד</p>
             <p className="text-xs text-amber-700/70 tracking-wide">קונדיטוריה • נתיבות</p>
           </div>
         </Link>
