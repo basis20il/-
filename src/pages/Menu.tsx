@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase, Product, productImage, effectivePrice } from '../lib/supabase';
+import { supabase, Product, productImage, effectivePrice, averageRating, locationMatchScore } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 
@@ -8,17 +8,62 @@ export const Menu: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState<string>('הכל');
+  const [search, setSearch] = useState('');
+  const [area, setArea] = useState('');
   const { add } = useCart();
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const [added, setAdded] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState<string | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [savingReview, setSavingReview] = useState(false);
+
+  const openReview = (p: Product) => {
+    const mine = p.reviews?.find(r => r.user_id === session?.user.id);
+    setReviewRating(mine?.rating || 5);
+    setReviewComment(mine?.comment || '');
+    setReviewing(reviewing === p.id ? null : p.id);
+  };
+
+  const submitReview = async (p: Product) => {
+    if (!session) return;
+    setSavingReview(true);
+    const { error } = await supabase.from('reviews').upsert({
+      product_id: p.id, user_id: session.user.id, rating: reviewRating, comment: reviewComment || null,
+    }, { onConflict: 'product_id,user_id' });
+    setSavingReview(false);
+    if (!error) {
+      const { data } = await supabase.from('products').select('*, vendor:vendors(*), reviews(*)').eq('is_active', true).order('created_at', { ascending: false });
+      setProducts((data as Product[]) || []);
+      setReviewing(null);
+    }
+  };
 
   useEffect(() => {
-    supabase.from('products').select('*, vendor:vendors(*)').eq('is_active', true).order('created_at', { ascending: false })
+    supabase.from('products').select('*, vendor:vendors(*), reviews(*)').eq('is_active', true).order('created_at', { ascending: false })
       .then(({ data }) => { setProducts((data as Product[]) || []); setLoading(false); });
   }, []);
 
+  useEffect(() => { if (profile?.address) setArea(profile.address); }, [profile?.address]);
+
   const categories = useMemo(() => ['הכל', ...Array.from(new Set(products.map(p => p.category).filter(Boolean) as string[]))], [products]);
-  const filtered = category === 'הכל' ? products : products.filter(p => p.category === category);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    let list = category === 'הכל' ? products : products.filter(p => p.category === category);
+    if (q) {
+      list = list.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        (p.description || '').toLowerCase().includes(q) ||
+        (p.vendor?.name || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q)
+      );
+    }
+    if (area.trim()) {
+      list = [...list].sort((a, b) => locationMatchScore(b.vendor?.area, area) - locationMatchScore(a.vendor?.area, area));
+    }
+    return list;
+  }, [products, category, search, area]);
 
   const handleAdd = (p: Product) => {
     add(p);
@@ -32,6 +77,19 @@ export const Menu: React.FC = () => {
         <span className="inline-block bg-amber-100 text-amber-900 text-xs font-bold tracking-wide px-4 py-2 rounded-full mb-4">התפריט שלנו</span>
         <h1 className="font-extrabold text-4xl sm:text-5xl text-amber-950 mb-4">כל המתוקים שלנו במקום אחד</h1>
         <p className="text-stone-500 max-w-xl mx-auto">בחרו את המוצרים האהובים עליכם והוסיפו לעגלה — נטפל בהזמנה במהירות ובדייקנות.</p>
+      </div>
+
+      <div className="max-w-2xl mx-auto grid sm:grid-cols-2 gap-3 mb-8 animate-fade-in-up">
+        <div className="relative">
+          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-300">🔍</span>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש לפי שם מוצר, אופה, קונדיטוריה..."
+            className="w-full border border-amber-200 rounded-full pr-11 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+        </div>
+        <div className="relative">
+          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-300">📍</span>
+          <input value={area} onChange={e => setArea(e.target.value)} placeholder="האיזור שלך (לדוגמה: נתיבות) — להצגת הקרובים אליך קודם"
+            className="w-full border border-amber-200 rounded-full pr-11 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+        </div>
       </div>
 
       {categories.length > 1 && (
@@ -64,6 +122,27 @@ export const Menu: React.FC = () => {
                   <h3 className="font-bold text-amber-950">{p.name}</h3>
                   <span className="font-extrabold text-amber-800 whitespace-nowrap">₪{effectivePrice(p, profile).toFixed(2)}</span>
                 </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {averageRating(p.reviews) != null ? (
+                    <p className="text-xs text-amber-600">⭐ {averageRating(p.reviews)!.toFixed(1)} ({p.reviews!.length} ביקורות)</p>
+                  ) : <p className="text-xs text-stone-300">אין עדיין דירוגים</p>}
+                  {session && <button onClick={() => openReview(p)} className="text-xs font-bold text-amber-800 hover:underline">✍️ ביקורת</button>}
+                </div>
+                {reviewing === p.id && (
+                  <div className="mt-2 bg-amber-50 rounded-xl p-3 space-y-2">
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map(n => (
+                        <button key={n} type="button" onClick={() => setReviewRating(n)} className={`text-lg ${n <= reviewRating ? 'text-amber-500' : 'text-stone-300'}`}>★</button>
+                      ))}
+                    </div>
+                    <textarea rows={2} value={reviewComment} onChange={e => setReviewComment(e.target.value)} placeholder="ביקורת קצרה (לא חובה)"
+                      className="w-full border border-amber-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none bg-white" />
+                    <button onClick={() => submitReview(p)} disabled={savingReview}
+                      className="text-sm font-bold bg-amber-800 hover:bg-amber-900 disabled:opacity-60 text-white px-4 py-1.5 rounded-full transition-colors">
+                      {savingReview ? 'שולח...' : 'שליחת ביקורת'}
+                    </button>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 flex-wrap mt-1">
                   {p.category && <span className="text-xs text-amber-600">{p.category}</span>}
                   {p.vendor && p.vendor.status === 'approved' && (

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase, Product, Order, productImage, SiteSettings, siteLogo, Profile, tierLabels, Vendor, vendorStatusLabels } from '../lib/supabase';
+import { supabase, Product, Order, productImage, SiteSettings, siteLogo, Profile, tierLabels, Vendor, vendorStatusLabels, CategoryRequest } from '../lib/supabase';
 import { PromotionsAdmin } from '../components/PromotionsAdmin';
 
 const emptyForm = { id: '', name: '', sku: '', description: '', price: '', wholesale_price: '', category: '', image_url: '', image_base64: '' };
@@ -28,6 +28,7 @@ const paymentLabels: Record<string, string> = {
 export const Admin: React.FC = () => {
   const [tab, setTab] = useState<'products' | 'promotions' | 'orders' | 'settings' | 'customers' | 'vendors'>('products');
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [categoryRequests, setCategoryRequests] = useState<CategoryRequest[]>([]);
   const [vendorStats, setVendorStats] = useState<Record<string, { order_count: number; total_revenue: number; commission_rate: number; commission_amount: number }>>({});
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -72,8 +73,16 @@ export const Admin: React.FC = () => {
     await supabase.from('vendors').update({ status }).eq('id', vendor.id);
     setVendors(prev => prev.map(v => v.id === vendor.id ? { ...v, status } : v));
   };
+  const loadCategoryRequests = async () => {
+    const { data } = await supabase.from('category_requests').select('*, vendor:vendors(*)').order('created_at', { ascending: false });
+    setCategoryRequests((data as any) || []);
+  };
+  const updateCategoryRequest = async (req: CategoryRequest, status: CategoryRequest['status']) => {
+    await supabase.from('category_requests').update({ status }).eq('id', req.id);
+    setCategoryRequests(prev => prev.map(r => r.id === req.id ? { ...r, status } : r));
+  };
 
-  useEffect(() => { loadProducts(); loadOrders(); loadSettings(); loadCustomers(); loadVendors(); }, []);
+  useEffect(() => { loadProducts(); loadOrders(); loadSettings(); loadCustomers(); loadVendors(); loadCategoryRequests(); }, []);
 
   const updateCustomerTier = async (c: Profile, customer_tier: Profile['customer_tier']) => {
     await supabase.from('profiles').update({ customer_tier }).eq('id', c.id);
@@ -125,6 +134,7 @@ export const Admin: React.FC = () => {
         const { error } = await supabase.from('products').insert(payload);
         if (error) throw error;
       }
+      if (form.category) await supabase.from('categories').upsert({ name: form.category }, { onConflict: 'name' });
       resetForm();
       loadProducts();
     } catch (err: any) {
@@ -230,6 +240,27 @@ export const Admin: React.FC = () => {
           })}
           {vendors.length === 0 && <p className="text-stone-400 text-center py-10">אין עדיין בקשות הצטרפות מקונדיטוריות.</p>}
           <p className="text-xs text-stone-400">העמלה היא 10% מכל הזמנה, ויורדת ל-5% החל מההזמנה ה-101 של אותה קונדיטוריה באותו חודש.</p>
+
+          {categoryRequests.length > 0 && (
+            <div className="mt-8">
+              <h3 className="font-bold text-lg text-amber-950 mb-3">בקשות לקטגוריות חדשות</h3>
+              <div className="space-y-2">
+                {categoryRequests.map(r => (
+                  <div key={r.id} className="bg-white rounded-xl border border-amber-100 shadow-sm p-4 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-bold text-amber-950">"{r.requested_name}" <span className="text-stone-300 font-normal">מאת {(r as any).vendor?.name || '—'}</span></p>
+                      <p className="text-xs text-stone-400">{new Date(r.created_at).toLocaleDateString('he-IL')}</p>
+                    </div>
+                    <select value={r.status} onChange={e => updateCategoryRequest(r, e.target.value as CategoryRequest['status'])}
+                      className="text-sm font-bold border border-amber-200 rounded-full px-4 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-amber-50 text-amber-900">
+                      {Object.entries(vendorStatusLabels).map(([val, label]) => <option key={val} value={val}>{label}</option>)}
+                    </select>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-stone-400 mt-2">אישור בקשה מוסיף את הקטגוריה אוטומטית לרשימת הקטגוריות הזמינות לקונדיטוריות.</p>
+            </div>
+          )}
         </div>
       ) : tab === 'customers' ? (
         <div className="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-x-auto animate-fade-in-up">

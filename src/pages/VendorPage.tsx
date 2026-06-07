@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { supabase, Vendor, Product, productImage, effectivePrice } from '../lib/supabase';
+import { supabase, Vendor, Product, productImage, effectivePrice, averageRating } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 
@@ -18,7 +18,7 @@ export const VendorPage: React.FC = () => {
       .then(({ data }) => {
         setVendor((data as Vendor) || null);
         if (data) {
-          supabase.from('products').select('*').eq('vendor_id', data.id).eq('is_active', true)
+          supabase.from('products').select('*, reviews(*)').eq('vendor_id', data.id).eq('is_active', true)
             .then(({ data: prods }) => setProducts((prods as Product[]) || []));
         }
       });
@@ -67,6 +67,9 @@ export const VendorPage: React.FC = () => {
                   <h3 className="font-bold text-amber-950">{p.name}</h3>
                   <span className="font-extrabold text-amber-800 whitespace-nowrap">₪{effectivePrice(p, profile).toFixed(2)}</span>
                 </div>
+                {averageRating(p.reviews) != null && (
+                  <p className="text-xs text-amber-600 mt-0.5">⭐ {averageRating(p.reviews)!.toFixed(1)} ({p.reviews!.length} ביקורות)</p>
+                )}
                 <p className="text-sm text-stone-400 mt-2 leading-relaxed flex-1">{p.description}</p>
                 <button onClick={() => handleAdd(p)}
                   className={`mt-4 w-full font-bold py-2.5 rounded-full transition-all duration-300 ${added === p.id ? 'bg-green-600 text-white' : 'bg-amber-800 hover:bg-amber-900 text-white hover:-translate-y-0.5'}`}>
