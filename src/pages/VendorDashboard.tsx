@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase, Vendor, Product, Order, vendorStatusLabels } from '../lib/supabase';
+import { supabase, Vendor, Product, Order, Category, vendorStatusLabels } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
 const statusOptions = ['pending', 'needs_info', 'confirmed', 'ready', 'completed', 'cancelled'];
@@ -9,6 +9,7 @@ const statusLabels: Record<string, string> = {
 
 const emptyApp = { name: '', slug: '', description: '', kosher_info: '', supply_method: '', area: '' };
 const emptyProduct = { id: '', name: '', sku: '', description: '', price: '', category: '', image_url: '' };
+const NEW_CATEGORY = '__new__';
 
 interface Commission { order_count: number; total_revenue: number; commission_rate: number; commission_amount: number; }
 
@@ -24,6 +25,22 @@ export const VendorDashboard: React.FC = () => {
   const [form, setForm] = useState(emptyProduct);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [categoryMsg, setCategoryMsg] = useState<string | null>(null);
+  const [requestingCategory, setRequestingCategory] = useState(false);
+
+  useEffect(() => { supabase.from('categories').select('*').order('name').then(({ data }) => setCategories((data as Category[]) || [])); }, []);
+
+  const requestCategory = async () => {
+    if (!vendor || !newCategoryName.trim()) return;
+    const { error: err } = await supabase.from('category_requests').insert({ vendor_id: vendor.id, requested_name: newCategoryName.trim() });
+    if (!err) {
+      setCategoryMsg(`הבקשה לקטגוריה "${newCategoryName.trim()}" נשלחה לאישור הנהלה. בינתיים ניתן לבחור קטגוריה קיימת.`);
+      setNewCategoryName('');
+      setRequestingCategory(false);
+    }
+  };
 
   const load = async () => {
     if (!session) return;
@@ -213,8 +230,24 @@ export const VendorDashboard: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-bold text-amber-950 mb-1">קטגוריה</label>
-              <input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}
-                className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              <select value={requestingCategory ? NEW_CATEGORY : form.category}
+                onChange={e => {
+                  if (e.target.value === NEW_CATEGORY) { setRequestingCategory(true); setForm({ ...form, category: '' }); setCategoryMsg(null); }
+                  else { setRequestingCategory(false); setForm({ ...form, category: e.target.value }); }
+                }}
+                className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                <option value="">בחרו קטגוריה</option>
+                {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                <option value={NEW_CATEGORY}>בקשת קטגוריה חדשה...</option>
+              </select>
+              {requestingCategory && (
+                <div className="mt-2 flex gap-2">
+                  <input value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="שם הקטגוריה המבוקשת"
+                    className="flex-1 border border-amber-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                  <button type="button" onClick={requestCategory} className="text-sm font-bold bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 rounded-xl transition-colors">שליחת בקשה</button>
+                </div>
+              )}
+              {categoryMsg && <p className="text-xs text-amber-700 mt-1">{categoryMsg}</p>}
             </div>
           </div>
           <div>

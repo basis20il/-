@@ -39,6 +39,7 @@ export interface Product {
   wholesale_price: number | null;
   vendor_id: string | null;
   vendor?: Vendor | null;
+  reviews?: Review[];
   created_at: string;
 }
 
@@ -128,3 +129,45 @@ export interface Vendor {
 }
 
 export const vendorStatusLabels: Record<string, string> = { pending: 'ממתינה לאישור', approved: 'מאושרת', rejected: 'נדחתה' };
+
+export interface Category {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface CategoryRequest {
+  id: string;
+  vendor_id: string | null;
+  requested_name: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+}
+
+export interface Review {
+  id: string;
+  product_id: string;
+  user_id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+}
+
+export function averageRating(reviews: Review[] | undefined | null): number | null {
+  if (!reviews || reviews.length === 0) return null;
+  return reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+}
+
+// Lightweight text-based "smart" matching: scores a vendor's area string against
+// the customer's free-text location, prioritizing exact/substring matches over none.
+export function locationMatchScore(vendorArea: string | null | undefined, customerArea: string): number {
+  if (!vendorArea || !customerArea.trim()) return 0;
+  const a = vendorArea.trim().toLowerCase();
+  const b = customerArea.trim().toLowerCase();
+  if (a === b) return 3;
+  if (a.includes(b) || b.includes(a)) return 2;
+  const aWords = a.split(/\s+/);
+  const bWords = b.split(/\s+/);
+  if (aWords.some(w => bWords.includes(w))) return 1;
+  return 0;
+}
