@@ -11,6 +11,7 @@ import { Cart } from './pages/Cart';
 import { Account } from './pages/Account';
 import { Admin } from './pages/Admin';
 import { DataDeletion } from './pages/DataDeletion';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 const App: React.FC = () => (
@@ -27,6 +28,7 @@ const App: React.FC = () => (
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
         <Route path="/data-deletion" element={<DataDeletion />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       </Routes>
     </main>
     <Footer />
