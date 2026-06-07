@@ -36,7 +36,7 @@ export const Home: React.FC = () => {
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-amber-200/40 rounded-full blur-3xl animate-float-slow" />
         <div className="absolute top-40 -right-32 w-[28rem] h-[28rem] bg-rose-100/50 rounded-full blur-3xl animate-float-slower" />
 
-        <div className="relative max-w-7xl mx-auto px-6 py-16 sm:py-20 lg:py-28 grid lg:grid-cols-2 gap-12 items-center">
+        <div className="relative max-w-7xl mx-auto px-6 pt-8 sm:pt-10 lg:pt-14 pb-16 sm:pb-20 lg:pb-28 grid lg:grid-cols-2 gap-12 items-center">
           <div className="animate-fade-in-up">
             <span className="inline-block bg-amber-100 text-amber-900 text-xs font-bold tracking-wide px-4 py-2 rounded-full mb-6">קונדיטוריה משפחתית בנתיבות מאז ומתמיד</span>
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-amber-950 leading-[1.1] mb-6">
