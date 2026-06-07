@@ -17,7 +17,7 @@ export const Account: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ full_name: '', phone: '' });
+  const [form, setForm] = useState({ full_name: '', phone: '', address: '' });
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -28,13 +28,13 @@ export const Account: React.FC = () => {
   };
 
   useEffect(() => { load(); }, [session]);
-  useEffect(() => { if (profile) setForm({ full_name: profile.full_name || '', phone: profile.phone || '' }); }, [profile]);
+  useEffect(() => { if (profile) setForm({ full_name: profile.full_name || '', phone: profile.phone || '', address: profile.address || '' }); }, [profile]);
 
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session) return;
     setSaving(true);
-    await supabase.from('profiles').update({ full_name: form.full_name, phone: form.phone }).eq('id', session.user.id);
+    await supabase.from('profiles').update({ full_name: form.full_name, phone: form.phone, address: form.address || null }).eq('id', session.user.id);
     await refreshProfile();
     setSaving(false);
     setEditing(false);
@@ -50,6 +50,7 @@ export const Account: React.FC = () => {
             <div>
               <p className="font-bold text-amber-950">{profile?.full_name || '—'}</p>
               <p className="text-sm text-stone-500" dir="ltr">{profile?.phone || '—'} · {session?.user.email}</p>
+              {profile?.address && <p className="text-sm text-stone-500 mt-0.5">{profile.address}</p>}
             </div>
             <button onClick={() => setEditing(true)} className="text-sm font-bold text-amber-800 hover:underline">עריכת פרטים</button>
           </div>
@@ -63,6 +64,11 @@ export const Account: React.FC = () => {
             <div>
               <label className="block text-sm font-bold text-amber-950 mb-1.5">טלפון</label>
               <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} dir="ltr"
+                className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-bold text-amber-950 mb-1.5">כתובת <span className="font-normal text-stone-400">(לא חובה)</span></label>
+              <input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })}
                 className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
             </div>
             <div className="sm:col-span-2 flex gap-3">

@@ -1,7 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { supabase, Product, Order, productImage } from '../lib/supabase';
 
-const emptyForm = { id: '', name: '', description: '', price: '', category: '', image_url: '', image_base64: '' };
+const emptyForm = { id: '', name: '', sku: '', description: '', price: '', category: '', image_url: '', image_base64: '' };
+
+const parseCsv = (text: string): Record<string, string>[] => {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+  return lines.slice(1).map(line => {
+    const cells = line.split(',').map(c => c.trim());
+    const row: Record<string, string> = {};
+    headers.forEach((h, i) => { row[h] = cells[i] ?? ''; });
+    return row;
+  });
+};
 
 const statusOptions = ['pending', 'confirmed', 'ready', 'completed', 'cancelled'];
 const statusLabels: Record<string, string> = {
@@ -16,6 +28,7 @@ export const Admin: React.FC = () => {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
 
   const loadProducts = async () => {
     const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
@@ -43,6 +56,7 @@ export const Admin: React.FC = () => {
     try {
       const payload = {
         name: form.name,
+        sku: form.sku || null,
         description: form.description || null,
         price: parseFloat(form.price) || 0,
         category: form.category || null,
@@ -67,7 +81,7 @@ export const Admin: React.FC = () => {
 
   const editProduct = (p: Product) => {
     setForm({
-      id: p.id, name: p.name, description: p.description || '', price: String(p.price),
+      id: p.id, name: p.name, sku: p.sku || '', description: p.description || '', price: String(p.price),
       category: p.category || '', image_url: p.image_url || '', image_base64: p.image_base64 || '',
     });
     setEditing(true);
@@ -83,6 +97,25 @@ export const Admin: React.FC = () => {
     if (!confirm(`למחוק את "${p.name}"?`)) return;
     await supabase.from('products').delete().eq('id', p.id);
     loadProducts();
+  };
+
+  const handleCsvImport = async (file: File) => {
+    setImportMsg(null);
+    const text = await file.text();
+    const rows = parseCsv(text);
+    if (rows.length === 0) { setImportMsg('הקובץ ריק או לא בפורמט תקין'); return; }
+    const payload = rows.filter(r => r.name).map(r => ({
+      name: r.name,
+      sku: r.sku || r['מק"ט'] || r['מקט'] || null,
+      description: r.description || null,
+      price: parseFloat(r.price) || 0,
+      category: r.category || null,
+      image_url: r.image_url || null,
+    }));
+    if (payload.length === 0) { setImportMsg('לא נמצאו שורות עם עמודת name תקינה'); return; }
+    const { error } = await supabase.from('products').insert(payload);
+    if (error) setImportMsg(`שגיאה: ${error.message}`);
+    else { setImportMsg(`יובאו ${payload.length} מוצרים בהצלחה`); loadProducts(); }
   };
 
   const updateOrderStatus = async (o: Order, status: string) => {
@@ -117,6 +150,11 @@ export const Admin: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
+                <label className="block text-sm font-bold text-amber-950 mb-1.5">מק״ט</label>
+                <input value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} dir="ltr"
+                  className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              </div>
+              <div>
                 <label className="block text-sm font-bold text-amber-950 mb-1.5">מחיר (₪)</label>
                 <input required type="number" step="0.01" min="0" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })}
                   className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
@@ -149,13 +187,20 @@ export const Admin: React.FC = () => {
           </form>
 
           <div className="lg:col-span-2 space-y-3">
+            <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-5 animate-fade-in-up">
+              <h3 className="font-bold text-amber-950 mb-1.5">ייבוא רשימת מוצרים מקובץ CSV</h3>
+              <p className="text-xs text-stone-400 mb-3">עמודות נתמכות: name, sku, description, price, category, image_url (שורה ראשונה = כותרות, מופרדות בפסיקים)</p>
+              <input type="file" accept=".csv,text/csv" onChange={e => e.target.files?.[0] && handleCsvImport(e.target.files[0])}
+                className="w-full text-sm text-stone-500 file:ml-3 file:px-4 file:py-2 file:rounded-full file:border-0 file:bg-amber-100 file:text-amber-900 file:font-bold" />
+              {importMsg && <p className="text-sm text-amber-700 mt-2">{importMsg}</p>}
+            </div>
             {products.map(p => (
               <div key={p.id} className="bg-white rounded-2xl border border-amber-100 shadow-sm p-4 flex items-center gap-4 animate-fade-in-up">
                 <div className="w-16 h-16 rounded-xl bg-amber-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                   {productImage(p) ? <img src={productImage(p)} alt={p.name} className="w-full h-full object-cover" /> : <span className="text-2xl">🧁</span>}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-amber-950 truncate">{p.name}</p>
+                  <p className="font-bold text-amber-950 truncate">{p.name} {p.sku && <span className="text-xs font-normal text-stone-400" dir="ltr">({p.sku})</span>}</p>
                   <p className="text-sm text-amber-700">₪{p.price.toFixed(2)} {p.category && `· ${p.category}`}</p>
                 </div>
                 <span className={`text-xs font-bold px-3 py-1 rounded-full ${p.is_active ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>{p.is_active ? 'פעיל' : 'מוסתר'}</span>

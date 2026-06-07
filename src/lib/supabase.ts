@@ -9,12 +9,14 @@ export interface Profile {
   id: string;
   full_name: string | null;
   phone: string | null;
+  address: string | null;
   is_admin: boolean;
 }
 
 export interface Product {
   id: string;
   name: string;
+  sku: string | null;
   description: string | null;
   price: number;
   image_url: string | null;
