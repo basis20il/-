@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase, Product, productImage } from '../lib/supabase';
 import { PromotionsBanner } from '../components/PromotionsBanner';
+import { useCart } from '../context/CartContext';
 
 const features = [
   { icon: '🎂', title: 'עוגות מעוצבות', text: 'עוגות לאירועים, ימי הולדת ושמחות — בעיצוב אישי ומדויק.' },
@@ -12,6 +13,14 @@ const features = [
 
 export const Home: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [added, setAdded] = useState<string | null>(null);
+  const { add } = useCart();
+
+  const handleAdd = (p: Product) => {
+    add(p);
+    setAdded(p.id);
+    setTimeout(() => setAdded(null), 1500);
+  };
 
   useEffect(() => {
     supabase.from('products').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(4)
@@ -25,7 +34,7 @@ export const Home: React.FC = () => {
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-amber-200/40 rounded-full blur-3xl animate-float-slow" />
         <div className="absolute top-40 -right-32 w-[28rem] h-[28rem] bg-rose-100/50 rounded-full blur-3xl animate-float-slower" />
 
-        <div className="relative max-w-7xl mx-auto px-6 py-24 lg:py-36 grid lg:grid-cols-2 gap-12 items-center">
+        <div className="relative max-w-7xl mx-auto px-6 py-16 sm:py-20 lg:py-28 grid lg:grid-cols-2 gap-12 items-center">
           <div className="animate-fade-in-up">
             <span className="inline-block bg-amber-100 text-amber-900 text-xs font-bold tracking-wide px-4 py-2 rounded-full mb-6">קונדיטוריה משפחתית בנתיבות מאז ומתמיד</span>
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-amber-950 leading-[1.1] mb-6">
@@ -90,6 +99,10 @@ export const Home: React.FC = () => {
                     <h3 className="font-bold text-amber-950">{p.name}</h3>
                     <p className="text-sm text-stone-400 mt-1 line-clamp-2">{p.description}</p>
                     <p className="font-extrabold text-amber-800 mt-3">₪{p.price.toFixed(2)}</p>
+                    <button onClick={() => handleAdd(p)}
+                      className={`mt-3 w-full font-bold py-2 rounded-full text-sm transition-all duration-300 ${added === p.id ? 'bg-green-600 text-white' : 'bg-amber-800 hover:bg-amber-900 text-white hover:-translate-y-0.5'}`}>
+                      {added === p.id ? 'נוסף לעגלה ✓' : 'הוספה לעגלה'}
+                    </button>
                   </div>
                 </div>
               ))}
