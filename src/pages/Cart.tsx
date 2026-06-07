@@ -129,6 +129,33 @@ export const Cart: React.FC = () => {
                   </button>
                 ))}
               </div>
+              {paymentMethod === 'card' && (
+                <div className="mt-3 bg-amber-50/60 border border-amber-100 rounded-xl p-4 space-y-3">
+                  <p className="text-xs text-amber-700 mb-1">פרטי כרטיס אשראי (תצוגה לדוגמה — החיוב בפועל יתבצע בתיאום מולכם)</p>
+                  <div>
+                    <label className="block text-xs font-bold text-amber-950 mb-1">מספר כרטיס</label>
+                    <input type="text" inputMode="numeric" placeholder="0000 0000 0000 0000" disabled
+                      className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm bg-white disabled:opacity-70" dir="ltr" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-amber-950 mb-1">תוקף</label>
+                      <input type="text" placeholder="MM/YY" disabled
+                        className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm bg-white disabled:opacity-70" dir="ltr" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-amber-950 mb-1">CVV</label>
+                      <input type="text" placeholder="123" disabled
+                        className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm bg-white disabled:opacity-70" dir="ltr" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-amber-950 mb-1">שם בעל הכרטיס</label>
+                    <input type="text" placeholder="כפי שמופיע על הכרטיס" disabled
+                      className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm bg-white disabled:opacity-70" />
+                  </div>
+                </div>
+              )}
               {paymentMethod === 'cash' && (
                 <p className="mt-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">שימו לב: בבחירה בתשלום במזומן, הליך ההזמנה ימתין לתשלום.</p>
               )}

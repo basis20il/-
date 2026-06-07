@@ -21,6 +21,10 @@ const statusLabels: Record<string, string> = {
   pending: 'ממתינה לאישור', needs_info: 'יש לעדכן כתובת וטלפון להמשך', confirmed: 'אושרה', ready: 'מוכנה לאיסוף', completed: 'הושלמה', cancelled: 'בוטלה',
 };
 
+const paymentLabels: Record<string, string> = {
+  card: '💳 כרטיס אשראי', apple_pay: ' Apple Pay', google_pay: 'Google Pay', cash: '💵 מזומן',
+};
+
 export const Admin: React.FC = () => {
   const [tab, setTab] = useState<'products' | 'promotions' | 'orders' | 'settings' | 'customers'>('products');
   const [products, setProducts] = useState<Product[]>([]);
@@ -318,6 +322,7 @@ export const Admin: React.FC = () => {
                 <div>
                   <p className="font-bold text-amber-950">{o.customer_name} · #{o.invoice_number || o.id.slice(0, 8)}</p>
                   <p className="text-xs text-stone-400" dir="ltr">{o.customer_phone} · {new Date(o.created_at).toLocaleString('he-IL')}</p>
+                  {o.payment_method && <p className="text-xs font-bold text-amber-700 mt-0.5">אופן תשלום שנבחר: {paymentLabels[o.payment_method] || o.payment_method}</p>}
                 </div>
                 <select value={o.status} onChange={e => updateOrderStatus(o, e.target.value)}
                   className="text-sm font-bold border border-amber-200 rounded-full px-4 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-amber-50 text-amber-900">
