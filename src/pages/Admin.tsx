@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase, Product, Order, productImage } from '../lib/supabase';
+import { supabase, Product, Order, productImage, SiteSettings, siteLogo } from '../lib/supabase';
 import { PromotionsAdmin } from '../components/PromotionsAdmin';
 
 const emptyForm = { id: '', name: '', sku: '', description: '', price: '', category: '', image_url: '', image_base64: '' };
@@ -22,9 +22,11 @@ const statusLabels: Record<string, string> = {
 };
 
 export const Admin: React.FC = () => {
-  const [tab, setTab] = useState<'products' | 'promotions' | 'orders'>('products');
+  const [tab, setTab] = useState<'products' | 'promotions' | 'orders' | 'settings'>('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [savingLogo, setSavingLogo] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -39,8 +41,23 @@ export const Admin: React.FC = () => {
     const { data } = await supabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: false });
     setOrders((data as Order[]) || []);
   };
+  const loadSettings = async () => {
+    const { data } = await supabase.from('site_settings').select('*').eq('id', 1).maybeSingle();
+    setSettings((data as SiteSettings) || null);
+  };
 
-  useEffect(() => { loadProducts(); loadOrders(); }, []);
+  useEffect(() => { loadProducts(); loadOrders(); loadSettings(); }, []);
+
+  const handleLogoFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      setSavingLogo(true);
+      await supabase.from('site_settings').upsert({ id: 1, logo_base64: reader.result as string, logo_url: null });
+      await loadSettings();
+      setSavingLogo(false);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const resetForm = () => { setForm(emptyForm); setEditing(false); };
 
@@ -121,6 +138,13 @@ export const Admin: React.FC = () => {
 
   const updateOrderStatus = async (o: Order, status: string) => {
     await supabase.from('orders').update({ status }).eq('id', o.id);
+    if (o.user_id) {
+      await supabase.from('notifications').insert({
+        user_id: o.user_id,
+        order_id: o.id,
+        message: `סטטוס ההזמנה שלך עודכן ל"${statusLabels[status] || status}"`,
+      });
+    }
     loadOrders();
   };
 
@@ -133,9 +157,24 @@ export const Admin: React.FC = () => {
         <button onClick={() => setTab('products')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'products' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>מוצרים</button>
         <button onClick={() => setTab('promotions')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'promotions' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>מבצעים ופרסומים</button>
         <button onClick={() => setTab('orders')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'orders' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>הזמנות ({orders.length})</button>
+        <button onClick={() => setTab('settings')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'settings' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>הגדרות אתר</button>
       </div>
 
-      {tab === 'promotions' ? (
+      {tab === 'settings' ? (
+        <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 max-w-md animate-fade-in-up">
+          <h2 className="font-bold text-lg text-amber-950 mb-4">לוגו האתר</h2>
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-20 h-20 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center overflow-hidden">
+              {siteLogo(settings) ? <img src={siteLogo(settings)} alt="לוגו" className="w-full h-full object-cover" /> : <span className="text-3xl">🍰</span>}
+            </div>
+            <label className="cursor-pointer bg-amber-800 hover:bg-amber-900 text-white font-bold px-5 py-2.5 rounded-full text-sm transition-colors">
+              {savingLogo ? 'שומר...' : 'העלאת לוגו חדש'}
+              <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleLogoFile(e.target.files[0])} />
+            </label>
+          </div>
+          <p className="text-xs text-stone-400">התמונה תוצג בעיגול בראש האתר. מומלץ תמונה ריבועית.</p>
+        </div>
+      ) : tab === 'promotions' ? (
         <PromotionsAdmin />
       ) : tab === 'products' ? (
         <div className="grid lg:grid-cols-3 gap-8">

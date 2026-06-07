@@ -77,3 +77,22 @@ export interface Promotion {
 export function promotionImage(p: Promotion): string {
   return p.image_url || p.image_base64 || '';
 }
+
+export interface SiteSettings {
+  id: number;
+  logo_url: string | null;
+  logo_base64: string | null;
+}
+
+export function siteLogo(s: SiteSettings | null): string {
+  return (s?.logo_url || s?.logo_base64 || '');
+}
+
+export interface Notification {
+  id: string;
+  user_id: string | null;
+  order_id: string | null;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
