@@ -58,9 +58,10 @@ export const Accessibility: React.FC = () => (
 
       <section>
         <h2 className="font-bold text-lg text-amber-950 mb-2">7. פניות ומשוב בנושא נגישות</h2>
-        <p>אם נתקלתם בבעיה או קושי בנושא נגישות באתר, או שיש לכם הצעות לשיפור — נשמח לשמוע ולטפל בפנייתכם בהקדם:</p>
+        <p>אם נתקלתם בבעיה או קושי בנושא נגישות באתר, או שיש לכם הצעות לשיפור — נשמח לשמוע ולטפל בפנייתכם בהקדם. ניתן לפנות לממונה הנגישות מטעמנו, יולי:</p>
         <ul className="list-disc list-inside space-y-1.5 mt-1">
-          <li>דוא״ל: <span dir="ltr" className="font-bold">info@2269702.xyz</span></li>
+          <li>דוא״ל ממונה הנגישות: <span dir="ltr" className="font-bold">accessibility@2269702.xyz</span></li>
+          <li>דוא״ל כללי: <span dir="ltr" className="font-bold">info@2269702.xyz</span></li>
           <li>טלפון: <span dir="ltr">077-2269702</span></li>
           <li>כתובת: הרב חזני 1, נתיבות</li>
         </ul>
