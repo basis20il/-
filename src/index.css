@@ -37,3 +37,8 @@
 .a11y-dark-contrast * { background-color: #1c1917 !important; color: #fafaf9 !important; border-color: #57534e !important; }
 .a11y-pause * { animation: none !important; transition: none !important; }
 .a11y-big-cursor, .a11y-big-cursor * { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24"><path fill="black" stroke="white" stroke-width="1" d="M4 2l16 9-7 1.5L9 21z"/></svg>') 0 0, auto !important; }
+.a11y-highlight-headings h1, .a11y-highlight-headings h2, .a11y-highlight-headings h3 { background: #fef3c7 !important; color: #78350f !important; padding: 0.05em 0.35em; border-radius: 6px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.a11y-large-targets a, .a11y-large-targets button { min-height: 44px; padding-top: 0.55em !important; padding-bottom: 0.55em !important; }
+.a11y-tts a, .a11y-tts button, .a11y-tts p, .a11y-tts h1, .a11y-tts h2, .a11y-tts h3, .a11y-tts li { cursor: pointer !important; }
+.a11y-tts *:hover { outline: 2px dashed #b45309 !important; outline-offset: 2px; }
+.a11y-reading-guide-bar { position: fixed; left: 0; right: 0; height: 2.5rem; background: rgba(180, 83, 9, 0.12); border-top: 2px solid #b45309; border-bottom: 2px solid #b45309; pointer-events: none; z-index: 9998; transform: translateY(-50%); }
