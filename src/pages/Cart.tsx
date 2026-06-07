@@ -114,19 +114,23 @@ export const Cart: React.FC = () => {
               <label className="block text-sm font-bold text-amber-950 mb-1.5">אופן תשלום</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { key: 'card', label: 'כרטיס אשראי', icon: '💳' },
-                  { key: 'apple_pay', label: 'Apple Pay', icon: '' },
-                  { key: 'google_pay', label: 'Google Pay', icon: '🅖' },
-                  { key: 'cash', label: 'מזומן', icon: '💵' },
+                  { key: 'card', label: 'כרטיס אשראי', node: <span>💳</span> },
+                  { key: 'apple_pay', label: 'Apple Pay', node: (
+                    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M16.498 0c.12 1.214-.36 2.396-1.024 3.255-.69.88-1.832 1.566-2.95 1.475-.144-1.166.41-2.396 1.05-3.157C14.293.756 15.484.06 16.498 0zm4.402 17.59c-.404.93-.6 1.347-1.12 2.17-.726 1.158-1.75 2.6-3.018 2.61-1.13.012-1.42-.735-2.954-.726-1.534.01-1.853.74-2.984.728-1.27-.012-2.24-1.31-2.967-2.467-2.034-3.207-2.25-6.97-.992-8.97.892-1.42 2.302-2.252 3.628-2.252 1.35 0 2.198.74 3.314.74 1.082 0 1.74-.742 3.314-.742 1.18 0 2.43.643 3.32 1.755-2.92 1.6-2.45 5.77.46 7.155z"/></svg>
+                  ) },
+                  { key: 'google_pay', label: 'Google Pay', node: (
+                    <svg viewBox="0 0 24 24" className="w-5 h-5"><path fill="#4285F4" d="M11.5 12.27v3.55h4.93c-.2 1.18-.84 2.18-1.8 2.85v2.36h2.9c1.7-1.56 2.68-3.87 2.68-6.6 0-.64-.06-1.25-.16-1.84l-8.55.01z"/><path fill="#34A853" d="M6.66 14.31l-.65.5-2.3 1.78c1.45 2.87 4.42 4.85 7.8 4.85 2.36 0 4.34-.78 5.79-2.12l-2.9-2.36c-.78.52-1.78.83-2.9.83-2.23 0-4.12-1.5-4.8-3.52z"/><path fill="#FBBC05" d="M3.71 8.61a7.95 7.95 0 0 0 0 6.78l2.95-2.28a4.78 4.78 0 0 1 0-3.05L3.71 8.61z"/><path fill="#EA4335" d="M11.5 7.38c1.22 0 2.32.42 3.18 1.24l2.6-2.6C15.83 4.6 13.86 3.79 11.5 3.79c-3.38 0-6.35 1.98-7.8 4.84l2.95 2.28c.68-2.02 2.57-3.53 4.8-3.53z"/></svg>
+                  ) },
+                  { key: 'cash', label: 'מזומן', node: <span>💵</span> },
                 ].map(opt => (
                   <button key={opt.key} type="button" onClick={() => setPaymentMethod(opt.key as typeof paymentMethod)}
                     className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-colors ${paymentMethod === opt.key ? 'bg-amber-100 border-amber-400 text-amber-900' : 'bg-white border-amber-200 text-stone-600 hover:bg-amber-50'}`}>
-                    <span>{opt.icon}</span>{opt.label}
+                    {opt.node}{opt.label}
                   </button>
                 ))}
               </div>
               {paymentMethod === 'cash' && (
-                <p className="mt-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">שימו לב: בבחירה בתשלום במזומן, הליך ההזמנה ימתין לתשלום בעת האיסוף/האספקה.</p>
+                <p className="mt-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">שימו לב: בבחירה בתשלום במזומן, הליך ההזמנה ימתין לתשלום.</p>
               )}
             </div>
             <div className="flex justify-between items-center pt-2 border-t border-amber-100">
