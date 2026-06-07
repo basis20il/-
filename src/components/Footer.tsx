@@ -16,6 +16,7 @@ export const Footer: React.FC = () => (
           <li><Link to="/contact" className="hover:text-white transition-colors">צור קשר</Link></li>
           <li><Link to="/login" className="hover:text-white transition-colors">התחברות / הרשמה</Link></li>
           <li><Link to="/privacy-policy" className="hover:text-white transition-colors">מדיניות פרטיות</Link></li>
+          <li><Link to="/accessibility" className="hover:text-white transition-colors">הצהרת נגישות</Link></li>
           <li><Link to="/data-deletion" className="hover:text-white transition-colors">מחיקת נתונים אישיים</Link></li>
         </ul>
       </div>
