@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Product } from '../lib/supabase';
+import { Product, effectivePrice } from '../lib/supabase';
+import { useAuth } from './AuthContext';
 
 export interface CartLine {
   product: Product;
@@ -31,6 +32,7 @@ export const useCart = () => useContext(CartContext);
 const STORAGE_KEY = 'migdanot_cart_v1';
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { profile } = useAuth();
   const [lines, setLines] = useState<CartLine[]>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -65,7 +67,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clear = () => setLines([]);
 
-  const total = lines.reduce((sum, l) => sum + l.product.price * l.quantity, 0);
+  const total = lines.reduce((sum, l) => sum + effectivePrice(l.product, profile) * l.quantity, 0);
   const count = lines.reduce((sum, l) => sum + l.quantity, 0);
 
   return (

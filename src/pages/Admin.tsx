@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { supabase, Product, Order, productImage, SiteSettings, siteLogo } from '../lib/supabase';
+import { supabase, Product, Order, productImage, SiteSettings, siteLogo, Profile, tierLabels } from '../lib/supabase';
 import { PromotionsAdmin } from '../components/PromotionsAdmin';
 
-const emptyForm = { id: '', name: '', sku: '', description: '', price: '', category: '', image_url: '', image_base64: '' };
+const emptyForm = { id: '', name: '', sku: '', description: '', price: '', wholesale_price: '', category: '', image_url: '', image_base64: '' };
 
 const parseCsv = (text: string): Record<string, string>[] => {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
@@ -22,9 +22,10 @@ const statusLabels: Record<string, string> = {
 };
 
 export const Admin: React.FC = () => {
-  const [tab, setTab] = useState<'products' | 'promotions' | 'orders' | 'settings'>('products');
+  const [tab, setTab] = useState<'products' | 'promotions' | 'orders' | 'settings' | 'customers'>('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [customers, setCustomers] = useState<Profile[]>([]);
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [savingLogo, setSavingLogo] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -45,8 +46,21 @@ export const Admin: React.FC = () => {
     const { data } = await supabase.from('site_settings').select('*').eq('id', 1).maybeSingle();
     setSettings((data as SiteSettings) || null);
   };
+  const loadCustomers = async () => {
+    const { data } = await supabase.from('profiles').select('*').order('full_name');
+    setCustomers((data as Profile[]) || []);
+  };
 
-  useEffect(() => { loadProducts(); loadOrders(); loadSettings(); }, []);
+  useEffect(() => { loadProducts(); loadOrders(); loadSettings(); loadCustomers(); }, []);
+
+  const updateCustomerTier = async (c: Profile, customer_tier: Profile['customer_tier']) => {
+    await supabase.from('profiles').update({ customer_tier }).eq('id', c.id);
+    setCustomers(cs => cs.map(x => x.id === c.id ? { ...x, customer_tier } : x));
+  };
+  const updateCustomerDiscount = async (c: Profile, discount_percent: number) => {
+    await supabase.from('profiles').update({ discount_percent }).eq('id', c.id);
+    setCustomers(cs => cs.map(x => x.id === c.id ? { ...x, discount_percent } : x));
+  };
 
   const handleLogoFile = (file: File) => {
     const reader = new FileReader();
@@ -77,6 +91,7 @@ export const Admin: React.FC = () => {
         sku: form.sku || null,
         description: form.description || null,
         price: parseFloat(form.price) || 0,
+        wholesale_price: form.wholesale_price ? parseFloat(form.wholesale_price) : null,
         category: form.category || null,
         image_url: form.image_url || null,
         image_base64: form.image_base64 || null,
@@ -100,6 +115,7 @@ export const Admin: React.FC = () => {
   const editProduct = (p: Product) => {
     setForm({
       id: p.id, name: p.name, sku: p.sku || '', description: p.description || '', price: String(p.price),
+      wholesale_price: p.wholesale_price != null ? String(p.wholesale_price) : '',
       category: p.category || '', image_url: p.image_url || '', image_base64: p.image_base64 || '',
     });
     setEditing(true);
@@ -157,10 +173,44 @@ export const Admin: React.FC = () => {
         <button onClick={() => setTab('products')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'products' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>מוצרים</button>
         <button onClick={() => setTab('promotions')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'promotions' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>מבצעים ופרסומים</button>
         <button onClick={() => setTab('orders')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'orders' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>הזמנות ({orders.length})</button>
+        <button onClick={() => setTab('customers')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'customers' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>לקוחות</button>
         <button onClick={() => setTab('settings')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'settings' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>הגדרות אתר</button>
       </div>
 
-      {tab === 'settings' ? (
+      {tab === 'customers' ? (
+        <div className="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-x-auto animate-fade-in-up">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-amber-900 bg-amber-50">
+                <th className="text-right px-5 py-3 font-bold">שם</th>
+                <th className="text-right px-5 py-3 font-bold">טלפון</th>
+                <th className="text-right px-5 py-3 font-bold">סוג לקוח</th>
+                <th className="text-right px-5 py-3 font-bold">הנחה אוטומטית (%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {customers.map(c => (
+                <tr key={c.id} className="border-t border-amber-50">
+                  <td className="px-5 py-3 font-bold text-amber-950">{c.full_name || '—'}</td>
+                  <td className="px-5 py-3 text-stone-500" dir="ltr">{c.phone || '—'}</td>
+                  <td className="px-5 py-3">
+                    <select value={c.customer_tier} onChange={e => updateCustomerTier(c, e.target.value as Profile['customer_tier'])}
+                      className="border border-amber-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                      {Object.entries(tierLabels).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-5 py-3">
+                    <input type="number" min="0" max="100" value={c.discount_percent}
+                      onChange={e => updateCustomerDiscount(c, Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)))}
+                      className="w-20 border border-amber-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="px-5 py-4 text-xs text-stone-400">סוג "סיטונאי" משתמש במחיר הסיטונאי שהוגדר למוצר (אם קיים), אחרת מופעלת ההנחה האוטומטית. סוג "VIP" וגם "רגיל" משתמשים בהנחה האוטומטית בלבד.</p>
+        </div>
+      ) : tab === 'settings' ? (
         <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 max-w-md animate-fade-in-up">
           <h2 className="font-bold text-lg text-amber-950 mb-4">לוגו האתר</h2>
           <div className="flex items-center gap-4 mb-4">
@@ -201,6 +251,11 @@ export const Admin: React.FC = () => {
                 <label className="block text-sm font-bold text-amber-950 mb-1.5">מחיר (₪)</label>
                 <input required type="number" step="0.01" min="0" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })}
                   className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-amber-950 mb-1.5">מחיר סיטונאי (₪)</label>
+                <input type="number" step="0.01" min="0" value={form.wholesale_price} onChange={e => setForm({ ...form, wholesale_price: e.target.value })}
+                  placeholder="אופציונלי" className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
               </div>
               <div>
                 <label className="block text-sm font-bold text-amber-950 mb-1.5">קטגוריה</label>

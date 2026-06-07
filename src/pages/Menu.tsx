@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { supabase, Product, productImage } from '../lib/supabase';
+import { supabase, Product, productImage, effectivePrice } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 
 export const Menu: React.FC = () => {
@@ -7,6 +8,7 @@ export const Menu: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState<string>('הכל');
   const { add } = useCart();
+  const { profile } = useAuth();
   const [added, setAdded] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,7 +61,7 @@ export const Menu: React.FC = () => {
               <div className="p-5 flex flex-col flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-bold text-amber-950">{p.name}</h3>
-                  <span className="font-extrabold text-amber-800 whitespace-nowrap">₪{p.price.toFixed(2)}</span>
+                  <span className="font-extrabold text-amber-800 whitespace-nowrap">₪{effectivePrice(p, profile).toFixed(2)}</span>
                 </div>
                 {p.category && <span className="text-xs text-amber-600 mt-1">{p.category}</span>}
                 <p className="text-sm text-stone-400 mt-2 leading-relaxed flex-1">{p.description}</p>

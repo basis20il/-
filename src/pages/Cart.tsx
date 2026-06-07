@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
+import { supabase, effectivePrice } from '../lib/supabase';
 
 export const Cart: React.FC = () => {
   const { lines, setQuantity, remove, clear, total } = useCart();
@@ -36,7 +36,7 @@ export const Cart: React.FC = () => {
         order_id: order.id,
         product_id: l.product.id,
         product_name: l.product.name,
-        unit_price: l.product.price,
+        unit_price: effectivePrice(l.product, profile),
         quantity: l.quantity,
       }));
       const { error: itemsErr } = await supabase.from('order_items').insert(items);
@@ -83,14 +83,14 @@ export const Cart: React.FC = () => {
                 <div className="w-16 h-16 rounded-xl bg-amber-100 flex items-center justify-center text-2xl flex-shrink-0">🧁</div>
                 <div className="flex-1">
                   <p className="font-bold text-amber-950">{l.product.name}</p>
-                  <p className="text-sm text-amber-700">₪{l.product.price.toFixed(2)}</p>
+                  <p className="text-sm text-amber-700">₪{effectivePrice(l.product, profile).toFixed(2)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setQuantity(l.product.id, l.quantity - 1)} className="w-8 h-8 rounded-full bg-amber-50 hover:bg-amber-100 font-bold text-amber-900 transition-colors">−</button>
                   <span className="w-6 text-center font-bold">{l.quantity}</span>
                   <button onClick={() => setQuantity(l.product.id, l.quantity + 1)} className="w-8 h-8 rounded-full bg-amber-50 hover:bg-amber-100 font-bold text-amber-900 transition-colors">+</button>
                 </div>
-                <p className="font-bold text-amber-950 w-20 text-left">₪{(l.product.price * l.quantity).toFixed(2)}</p>
+                <p className="font-bold text-amber-950 w-20 text-left">₪{(effectivePrice(l.product, profile) * l.quantity).toFixed(2)}</p>
                 <button onClick={() => remove(l.product.id)} className="text-stone-300 hover:text-red-600 transition-colors text-xl">✕</button>
               </div>
             ))}

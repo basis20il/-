@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase, Product, productImage } from '../lib/supabase';
+import { supabase, Product, productImage, effectivePrice } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 import { PromotionsBanner } from '../components/PromotionsBanner';
 import { useCart } from '../context/CartContext';
 
@@ -15,6 +16,7 @@ export const Home: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [added, setAdded] = useState<string | null>(null);
   const { add } = useCart();
+  const { profile } = useAuth();
 
   const handleAdd = (p: Product) => {
     add(p);
@@ -98,7 +100,7 @@ export const Home: React.FC = () => {
                   <div className="p-5">
                     <h3 className="font-bold text-amber-950">{p.name}</h3>
                     <p className="text-sm text-stone-400 mt-1 line-clamp-2">{p.description}</p>
-                    <p className="font-extrabold text-amber-800 mt-3">₪{p.price.toFixed(2)}</p>
+                    <p className="font-extrabold text-amber-800 mt-3">₪{effectivePrice(p, profile).toFixed(2)}</p>
                     <button onClick={() => handleAdd(p)}
                       className={`mt-3 w-full font-bold py-2 rounded-full text-sm transition-all duration-300 ${added === p.id ? 'bg-green-600 text-white' : 'bg-amber-800 hover:bg-amber-900 text-white hover:-translate-y-0.5'}`}>
                       {added === p.id ? 'נוסף לעגלה ✓' : 'הוספה לעגלה'}

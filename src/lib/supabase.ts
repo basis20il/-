@@ -20,7 +20,11 @@ export interface Profile {
   phone: string | null;
   address: string | null;
   is_admin: boolean;
+  customer_tier: 'regular' | 'vip' | 'wholesale';
+  discount_percent: number;
 }
+
+export const tierLabels: Record<string, string> = { regular: 'רגיל', vip: 'VIP', wholesale: 'סיטונאי' };
 
 export interface Product {
   id: string;
@@ -32,7 +36,15 @@ export interface Product {
   image_base64: string | null;
   category: string | null;
   is_active: boolean;
+  wholesale_price: number | null;
   created_at: string;
+}
+
+export function effectivePrice(p: Product, profile: Profile | null | undefined): number {
+  if (!profile) return p.price;
+  if (profile.customer_tier === 'wholesale' && p.wholesale_price != null) return p.wholesale_price;
+  if (profile.discount_percent > 0) return +(p.price * (1 - profile.discount_percent / 100)).toFixed(2);
+  return p.price;
 }
 
 export interface OrderItem {
