@@ -22,7 +22,7 @@ export const Footer: React.FC = () => (
         <p className="font-bold text-white mb-3">פרטי התקשרות</p>
         <ul className="space-y-2 text-sm">
           <li>📍 הרב חזני 1, נתיבות</li>
-          <li>📞 052-414-7201</li>
+          <li>📞 077-2269702</li>
           <li>🕗 שישי: 09:00–10:00, ולפי תיאום מראש</li>
         </ul>
       </div>

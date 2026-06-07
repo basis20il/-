@@ -27,7 +27,7 @@ export const Contact: React.FC = () => {
           </div>
           <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 flex items-center gap-4 hover:shadow-lg transition-shadow duration-300">
             <span className="text-3xl">📞</span>
-            <div><p className="font-bold text-amber-950">טלפון</p><p className="text-stone-500 text-sm" dir="ltr">052-414-7201</p></div>
+            <div><p className="font-bold text-amber-950">טלפון</p><p className="text-stone-500 text-sm" dir="ltr">077-2269702</p><p className="text-stone-400 text-xs mt-0.5" dir="ltr">פנייה אישית למנהל: 055-5615243</p></div>
           </div>
           <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 flex items-center gap-4 hover:shadow-lg transition-shadow duration-300">
             <span className="text-3xl">🕗</span>

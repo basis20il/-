@@ -43,7 +43,7 @@ export const DataDeletion: React.FC = () => {
       </div>
 
       <p className="text-center text-sm text-stone-400 mt-8">
-        ניתן גם לפנות אלינו ישירות בכתובת <span dir="ltr" className="font-bold text-amber-800">info@2269702.xyz</span> או בטלפון 052-414-7201, ובקשתכם תטופל בהקדם.
+        ניתן גם לפנות אלינו ישירות בכתובת <span dir="ltr" className="font-bold text-amber-800">info@2269702.xyz</span> או בטלפון 077-2269702, ובקשתכם תטופל בהקדם.
       </p>
     </div>
   );
