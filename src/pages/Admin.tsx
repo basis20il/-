@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase, Product, Order, productImage, SiteSettings, siteLogo, Profile, tierLabels, Vendor, vendorStatusLabels, CategoryRequest } from '../lib/supabase';
+import { supabase, Product, Order, productImage, SiteSettings, siteLogo, Profile, tierLabels, Vendor, vendorStatusLabels, CategoryRequest, AccountEntry, Coupon } from '../lib/supabase';
 import { PromotionsAdmin } from '../components/PromotionsAdmin';
 
 const emptyForm = { id: '', name: '', sku: '', description: '', price: '', wholesale_price: '', category: '', image_url: '', image_base64: '' };
@@ -26,7 +26,13 @@ const paymentLabels: Record<string, string> = {
 };
 
 export const Admin: React.FC = () => {
-  const [tab, setTab] = useState<'products' | 'promotions' | 'orders' | 'settings' | 'customers' | 'vendors'>('products');
+  const [tab, setTab] = useState<'products' | 'promotions' | 'orders' | 'settings' | 'customers' | 'vendors' | 'coupons'>('products');
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponPercent, setCouponPercent] = useState('10');
+  const [couponExpires, setCouponExpires] = useState('');
+  const [couponSaving, setCouponSaving] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [categoryRequests, setCategoryRequests] = useState<CategoryRequest[]>([]);
   const [vendorStats, setVendorStats] = useState<Record<string, { order_count: number; total_revenue: number; commission_rate: number; commission_amount: number }>>({});
@@ -40,6 +46,11 @@ export const Admin: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importMsg, setImportMsg] = useState<string | null>(null);
+  const [ledgerCustomer, setLedgerCustomer] = useState<Profile | null>(null);
+  const [ledgerEntries, setLedgerEntries] = useState<AccountEntry[]>([]);
+  const [ledgerAmount, setLedgerAmount] = useState('');
+  const [ledgerNote, setLedgerNote] = useState('');
+  const [ledgerSaving, setLedgerSaving] = useState(false);
 
   const loadProducts = async () => {
     const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
@@ -69,6 +80,35 @@ export const Admin: React.FC = () => {
     }));
     setVendorStats(stats);
   };
+  const loadCoupons = async () => {
+    const { data } = await supabase.from('coupons').select('*').is('vendor_id', null).order('created_at', { ascending: false });
+    setCoupons((data as Coupon[]) || []);
+  };
+  const submitCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCouponSaving(true);
+    setCouponError(null);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from('coupons').insert({
+      code: couponCode.trim().toUpperCase(),
+      discount_percent: parseFloat(couponPercent) || 0,
+      expires_at: couponExpires || null,
+      created_by: user?.id || null,
+    });
+    if (error) setCouponError(error.message);
+    else { setCouponCode(''); setCouponPercent('10'); setCouponExpires(''); loadCoupons(); }
+    setCouponSaving(false);
+  };
+  const toggleCoupon = async (c: Coupon) => {
+    await supabase.from('coupons').update({ is_active: !c.is_active }).eq('id', c.id);
+    setCoupons(cs => cs.map(x => x.id === c.id ? { ...x, is_active: !x.is_active } : x));
+  };
+  const deleteCoupon = async (c: Coupon) => {
+    if (!confirm(`למחוק את הקופון "${c.code}"?`)) return;
+    await supabase.from('coupons').delete().eq('id', c.id);
+    setCoupons(cs => cs.filter(x => x.id !== c.id));
+  };
+
   const updateVendorStatus = async (vendor: Vendor, status: Vendor['status']) => {
     await supabase.from('vendors').update({ status }).eq('id', vendor.id);
     setVendors(prev => prev.map(v => v.id === vendor.id ? { ...v, status } : v));
@@ -82,7 +122,7 @@ export const Admin: React.FC = () => {
     setCategoryRequests(prev => prev.map(r => r.id === req.id ? { ...r, status } : r));
   };
 
-  useEffect(() => { loadProducts(); loadOrders(); loadSettings(); loadCustomers(); loadVendors(); loadCategoryRequests(); }, []);
+  useEffect(() => { loadProducts(); loadOrders(); loadSettings(); loadCustomers(); loadVendors(); loadCategoryRequests(); loadCoupons(); }, []);
 
   const updateCustomerTier = async (c: Profile, customer_tier: Profile['customer_tier']) => {
     await supabase.from('profiles').update({ customer_tier }).eq('id', c.id);
@@ -92,6 +132,36 @@ export const Admin: React.FC = () => {
     await supabase.from('profiles').update({ discount_percent }).eq('id', c.id);
     setCustomers(cs => cs.map(x => x.id === c.id ? { ...x, discount_percent } : x));
   };
+
+  const openLedger = async (c: Profile) => {
+    setLedgerCustomer(c);
+    setLedgerAmount('');
+    setLedgerNote('');
+    const { data } = await supabase.from('account_entries').select('*').eq('user_id', c.id).order('created_at', { ascending: false });
+    setLedgerEntries((data as AccountEntry[]) || []);
+  };
+
+  const addLedgerEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ledgerCustomer) return;
+    const amount = parseFloat(ledgerAmount);
+    if (!amount) return;
+    setLedgerSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from('account_entries').insert({ user_id: ledgerCustomer.id, amount, note: ledgerNote || null, created_by: user?.id || null });
+    await openLedger(ledgerCustomer);
+    setLedgerAmount('');
+    setLedgerNote('');
+    setLedgerSaving(false);
+  };
+
+  const deleteLedgerEntry = async (entry: AccountEntry) => {
+    if (!ledgerCustomer || !confirm('למחוק רשומה זו?')) return;
+    await supabase.from('account_entries').delete().eq('id', entry.id);
+    await openLedger(ledgerCustomer);
+  };
+
+  const ledgerBalance = ledgerEntries.reduce((sum, e) => sum + e.amount, 0);
 
   const handleLogoFile = (file: File) => {
     const reader = new FileReader();
@@ -207,6 +277,7 @@ export const Admin: React.FC = () => {
         <button onClick={() => setTab('orders')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'orders' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>הזמנות ({orders.length})</button>
         <button onClick={() => setTab('customers')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'customers' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>לקוחות</button>
         <button onClick={() => setTab('vendors')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'vendors' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>קונדיטוריות שותפות ({vendors.length})</button>
+        <button onClick={() => setTab('coupons')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'coupons' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>קופונים</button>
         <button onClick={() => setTab('settings')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'settings' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>הגדרות אתר</button>
       </div>
 
@@ -271,6 +342,7 @@ export const Admin: React.FC = () => {
                 <th className="text-right px-5 py-3 font-bold">טלפון</th>
                 <th className="text-right px-5 py-3 font-bold">סוג לקוח</th>
                 <th className="text-right px-5 py-3 font-bold">הנחה אוטומטית (%)</th>
+                <th className="text-right px-5 py-3 font-bold">חשבון תשלומים</th>
               </tr>
             </thead>
             <tbody>
@@ -288,6 +360,9 @@ export const Admin: React.FC = () => {
                     <input type="number" min="0" max="100" value={c.discount_percent}
                       onChange={e => updateCustomerDiscount(c, Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)))}
                       className="w-20 border border-amber-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                  </td>
+                  <td className="px-5 py-3">
+                    <button onClick={() => openLedger(c)} className="text-sm font-bold text-amber-800 hover:underline">ניהול חשבון</button>
                   </td>
                 </tr>
               ))}
@@ -308,6 +383,59 @@ export const Admin: React.FC = () => {
             </label>
           </div>
           <p className="text-xs text-stone-400">התמונה תוצג בעיגול בראש האתר. מומלץ תמונה ריבועית.</p>
+        </div>
+      ) : tab === 'coupons' ? (
+        <div className="grid lg:grid-cols-3 gap-8">
+          <form onSubmit={submitCoupon} className="lg:col-span-1 bg-white rounded-2xl border border-amber-100 shadow-sm p-6 space-y-4 h-fit animate-fade-in-up">
+            <h2 className="font-bold text-lg text-amber-950">קופון חדש (כלל-אתרי)</h2>
+            {couponError && <p className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-2.5">{couponError}</p>}
+            <div>
+              <label className="block text-sm font-bold text-amber-950 mb-1.5">קוד קופון</label>
+              <input value={couponCode} onChange={e => setCouponCode(e.target.value)} required dir="ltr"
+                className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="SUMMER10" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-amber-950 mb-1.5">אחוז הנחה</label>
+              <input type="number" min="1" max="100" value={couponPercent} onChange={e => setCouponPercent(e.target.value)} required
+                className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-amber-950 mb-1.5">תוקף עד <span className="font-normal text-stone-400">(לא חובה)</span></label>
+              <input type="date" value={couponExpires} onChange={e => setCouponExpires(e.target.value)}
+                className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+            </div>
+            <button disabled={couponSaving} className="w-full bg-amber-800 hover:bg-amber-900 disabled:opacity-60 text-white font-bold py-2.5 rounded-xl transition-colors">{couponSaving ? 'יוצר...' : 'יצירת קופון'}</button>
+            <p className="text-xs text-stone-400">קופונים אלו תקפים בכל האתר, לכל המוצרים. כל קונדיטוריה יכולה ליצור קופונים נפרדים שיעבדו רק על המוצרים שלה, מתוך לוח הבקרה שלה.</p>
+          </form>
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-amber-100 shadow-sm overflow-x-auto animate-fade-in-up h-fit">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-amber-900 bg-amber-50">
+                  <th className="text-right px-5 py-3 font-bold">קוד</th>
+                  <th className="text-right px-5 py-3 font-bold">הנחה</th>
+                  <th className="text-right px-5 py-3 font-bold">תוקף</th>
+                  <th className="text-right px-5 py-3 font-bold">סטטוס</th>
+                  <th className="text-right px-5 py-3 font-bold"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {coupons.map(c => (
+                  <tr key={c.id} className="border-t border-amber-50">
+                    <td className="px-5 py-3 font-bold text-amber-950" dir="ltr">{c.code}</td>
+                    <td className="px-5 py-3 text-stone-600">{c.discount_percent}%</td>
+                    <td className="px-5 py-3 text-stone-500 text-xs">{c.expires_at ? new Date(c.expires_at).toLocaleDateString('he-IL') : 'ללא הגבלה'}</td>
+                    <td className="px-5 py-3">
+                      <button onClick={() => toggleCoupon(c)} className={`text-xs font-bold px-3 py-1 rounded-full ${c.is_active ? 'bg-green-100 text-green-800' : 'bg-stone-100 text-stone-500'}`}>{c.is_active ? 'פעיל' : 'מושבת'}</button>
+                    </td>
+                    <td className="px-5 py-3">
+                      <button onClick={() => deleteCoupon(c)} className="text-xs text-stone-400 hover:text-red-600">מחיקה</button>
+                    </td>
+                  </tr>
+                ))}
+                {coupons.length === 0 && <tr><td colSpan={5} className="px-5 py-8 text-center text-stone-400">אין עדיין קופונים כלל-אתריים.</td></tr>}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : tab === 'promotions' ? (
         <PromotionsAdmin />
@@ -419,6 +547,42 @@ export const Admin: React.FC = () => {
             </div>
           ))}
           {orders.length === 0 && <p className="text-stone-400 text-center py-10">אין עדיין הזמנות.</p>}
+        </div>
+      )}
+
+      {ledgerCustomer && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setLedgerCustomer(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-extrabold text-xl text-amber-950">חשבון תשלומים — {ledgerCustomer.full_name || 'לקוח'}</h3>
+              <button onClick={() => setLedgerCustomer(null)} className="text-stone-400 hover:text-stone-600 text-xl leading-none">✕</button>
+            </div>
+            <p className={`font-extrabold text-lg mb-4 ${ledgerBalance < 0 ? 'text-red-600' : 'text-green-700'}`}>
+              {ledgerBalance < 0 ? `חוב: ₪${Math.abs(ledgerBalance).toFixed(2)}` : `יתרה: ₪${ledgerBalance.toFixed(2)}`}
+            </p>
+            <form onSubmit={addLedgerEntry} className="flex flex-wrap gap-2 mb-5">
+              <input type="number" step="0.01" value={ledgerAmount} onChange={e => setLedgerAmount(e.target.value)} placeholder="סכום (חיובי=זיכוי, שלילי=חיוב)"
+                className="flex-1 min-w-[160px] border border-amber-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              <input value={ledgerNote} onChange={e => setLedgerNote(e.target.value)} placeholder="הערה (לא חובה)"
+                className="flex-1 min-w-[160px] border border-amber-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              <button disabled={ledgerSaving} className="bg-amber-800 hover:bg-amber-900 text-white font-bold px-5 py-2 rounded-full transition-colors text-sm">{ledgerSaving ? 'שומר...' : 'הוספה'}</button>
+            </form>
+            <ul className="text-sm divide-y divide-amber-50">
+              {ledgerEntries.map(en => (
+                <li key={en.id} className="py-2 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-stone-600">{en.note || (en.amount >= 0 ? 'זיכוי' : 'חיוב')}</p>
+                    <p className="text-xs text-stone-400">{new Date(en.created_at).toLocaleString('he-IL')}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`font-bold whitespace-nowrap ${en.amount < 0 ? 'text-red-600' : 'text-green-700'}`}>{en.amount >= 0 ? '+' : ''}₪{en.amount.toFixed(2)}</span>
+                    <button onClick={() => deleteLedgerEntry(en)} className="text-xs text-stone-400 hover:text-red-600">מחיקה</button>
+                  </div>
+                </li>
+              ))}
+              {ledgerEntries.length === 0 && <li className="py-3 text-stone-400 text-center">אין עדיין רשומות בחשבון זה.</li>}
+            </ul>
+          </div>
         </div>
       )}
     </div>

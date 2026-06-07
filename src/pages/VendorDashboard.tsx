@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase, Vendor, Product, Order, Category, vendorStatusLabels } from '../lib/supabase';
+import { supabase, Vendor, Product, Order, Category, Coupon, vendorStatusLabels } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
 const statusOptions = ['pending', 'needs_info', 'confirmed', 'ready', 'completed', 'cancelled'];
@@ -29,6 +29,43 @@ export const VendorDashboard: React.FC = () => {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [categoryMsg, setCategoryMsg] = useState<string | null>(null);
   const [requestingCategory, setRequestingCategory] = useState(false);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponPercent, setCouponPercent] = useState('10');
+  const [couponExpires, setCouponExpires] = useState('');
+  const [couponSaving, setCouponSaving] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+
+  const loadCoupons = async (vendorId: string) => {
+    const { data } = await supabase.from('coupons').select('*').eq('vendor_id', vendorId).order('created_at', { ascending: false });
+    setCoupons((data as Coupon[]) || []);
+  };
+  const submitCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!vendor) return;
+    setCouponSaving(true);
+    setCouponError(null);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error: err } = await supabase.from('coupons').insert({
+      vendor_id: vendor.id,
+      code: couponCode.trim().toUpperCase(),
+      discount_percent: parseFloat(couponPercent) || 0,
+      expires_at: couponExpires || null,
+      created_by: user?.id || null,
+    });
+    if (err) setCouponError(err.message);
+    else { setCouponCode(''); setCouponPercent('10'); setCouponExpires(''); loadCoupons(vendor.id); }
+    setCouponSaving(false);
+  };
+  const toggleCoupon = async (c: Coupon) => {
+    await supabase.from('coupons').update({ is_active: !c.is_active }).eq('id', c.id);
+    setCoupons(cs => cs.map(x => x.id === c.id ? { ...x, is_active: !x.is_active } : x));
+  };
+  const deleteCoupon = async (c: Coupon) => {
+    if (!confirm(`למחוק את הקופון "${c.code}"?`)) return;
+    await supabase.from('coupons').delete().eq('id', c.id);
+    setCoupons(cs => cs.filter(x => x.id !== c.id));
+  };
 
   useEffect(() => { supabase.from('categories').select('*').order('name').then(({ data }) => setCategories((data as Category[]) || [])); }, []);
 
@@ -57,6 +94,7 @@ export const VendorDashboard: React.FC = () => {
       .then(({ data }) => setOrders((data as Order[]) || []));
     supabase.rpc('get_vendor_commission', { p_vendor_id: vendor.id, p_month: new Date().toISOString().slice(0, 10) })
       .then(({ data }) => setCommission(data?.[0] || null));
+    loadCoupons(vendor.id);
   }, [vendor]);
 
   const submitApplication = async (e: React.FormEvent) => {
@@ -179,6 +217,28 @@ export const VendorDashboard: React.FC = () => {
             {applying ? 'שולח...' : 'שליחת בקשה'}
           </button>
         </form>
+
+        <h2 className="font-extrabold text-2xl text-amber-950 mt-14 mb-5">שאלות ותשובות למצטרפים</h2>
+        <div className="space-y-4">
+          {[
+            { q: 'אילו מוצרים אפשר למכור דרך האתר?', a: 'מוצרי מאפה, קונדיטוריה ומתוקים בלבד, בכפוף לעמידה בדרישות הכשרות והרישוי הנדרשות. כל המוצרים מוצגים יחד עם תג שם העסק שלכם, ולקוחות יכולים להגיע גם לעמוד עסק ייעודי משלכם.' },
+            { q: 'האם אני חייב/ת תעודת עוסק?', a: 'כן — לפי החוק בישראל, כל מי שמוכר מוצרים דרך האתר נדרש/ת להיות רשום/ה כעוסק ברשות המסים. ניתן להירשם כאחד מהסוגים הבאים, בהתאם להיקף הפעילות הצפוי שלכם:' },
+            { q: 'מהי "עוסק פטור"?', a: 'עוסק שמחזור עסקאותיו השנתי נמוך מהתקרה שקובע החוק (מתעדכנת מדי שנה). פטור מגביית מע"מ ומדיווחים תקופתיים מורכבים, אך עדיין חייב ברישום ובהוצאת קבלות. מתאים לפעילות קטנה ומשלימה.' },
+            { q: 'מהי "עוסק זעיר"?', a: 'מסלול מקל יחסית במס הכנסה, המיועד לעוסקים עם מחזור נמוך עד תקרה מסוימת, המאפשר דיווח וניהול הנהלת חשבונות פשוטים יותר. שימו לב כי לעניין מע"מ הוא עדיין נחשב "עוסק מורשה" או "עוסק פטור" בהתאם למחזור.' },
+            { q: 'מהי "עוסק מורשה"?', a: 'עוסק שמחזור עסקאותיו עולה על תקרת הפטור, או שבחר/ה במעמד זה מרצונו/ה. חייב/ת בגביית מע"מ, הוצאת חשבוניות מס ודיווחים תקופתיים לרשויות המס. מתאים לפעילות עסקית רחבה ויציבה יותר.' },
+            { q: 'איזה סוג עוסק מתאים לי?', a: 'זה תלוי בהיקף הפעילות הצפוי ובתחזית ההכנסות שלכם. מומלץ להתייעץ עם רואה/ת חשבון או יועץ/ת מס לפני ההרשמה, כדי לבחור את המסלול הנכון ולהימנע מבעיות מול רשויות המס בהמשך הדרך. האתר אינו ייעוץ משפטי או חשבונאי.' },
+            { q: 'מה קורה אחרי שהבקשה אושרה?', a: 'תקבלו גישה ללוח בקרה אישי לניהול המוצרים, ההזמנות, קודי הקופון והעמלות שלכם. הזמנות שכוללות גם את המוצרים שלכם וגם מוצרים של עסקים אחרים יפוצלו אוטומטית להזמנות נפרדות לכל עסק.' },
+            { q: 'איך מחושבת העמלה?', a: 'העמלה היא 10% מכל הזמנה, ויורדת ל-5% החל מההזמנה ה-101 באותו חודש קלנדרי — כתמריץ לעסקים פעילים.' },
+          ].map((item, i) => (
+            <details key={i} className="bg-white rounded-2xl border border-amber-100 shadow-sm p-5 group">
+              <summary className="font-bold text-amber-950 cursor-pointer list-none flex items-center justify-between gap-3">
+                {item.q}
+                <span className="text-amber-400 group-open:rotate-180 transition-transform">⌄</span>
+              </summary>
+              <p className="text-sm text-stone-500 leading-relaxed mt-3">{item.a}</p>
+            </details>
+          ))}
+        </div>
       </div>
     );
   }
@@ -278,6 +338,47 @@ export const VendorDashboard: React.FC = () => {
             </div>
           ))}
           {products.length === 0 && <p className="text-stone-400 text-center py-10">עדיין לא הוספתם מוצרים.</p>}
+        </div>
+      </div>
+
+      <h2 className="font-bold text-xl text-amber-950 mb-4">קודי קופון לחנות שלי</h2>
+      <div className="grid lg:grid-cols-2 gap-8 mb-12">
+        <form onSubmit={submitCoupon} className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 space-y-3 h-fit">
+          {couponError && <p className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-2">{couponError}</p>}
+          <div>
+            <label className="block text-sm font-bold text-amber-950 mb-1">קוד קופון</label>
+            <input value={couponCode} onChange={e => setCouponCode(e.target.value)} required dir="ltr"
+              className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="MYSHOP10" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-bold text-amber-950 mb-1">אחוז הנחה</label>
+              <input type="number" min="1" max="100" value={couponPercent} onChange={e => setCouponPercent(e.target.value)} required
+                className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-amber-950 mb-1">תוקף עד</label>
+              <input type="date" value={couponExpires} onChange={e => setCouponExpires(e.target.value)}
+                className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+            </div>
+          </div>
+          <button disabled={couponSaving} className="w-full bg-amber-800 hover:bg-amber-900 disabled:opacity-60 text-white font-bold py-2.5 rounded-xl transition-colors">{couponSaving ? 'יוצר...' : 'יצירת קופון'}</button>
+          <p className="text-xs text-stone-400">הקופון יעבוד רק על המוצרים שלכם בעגלה.</p>
+        </form>
+        <div className="bg-white rounded-2xl border border-amber-100 shadow-sm divide-y divide-amber-50 h-fit">
+          {coupons.map(c => (
+            <div key={c.id} className="px-5 py-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="font-bold text-amber-950" dir="ltr">{c.code}</p>
+                <p className="text-xs text-stone-400">{c.discount_percent}% · {c.expires_at ? `עד ${new Date(c.expires_at).toLocaleDateString('he-IL')}` : 'ללא הגבלה'}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button onClick={() => toggleCoupon(c)} className={`text-xs font-bold px-3 py-1 rounded-full ${c.is_active ? 'bg-green-100 text-green-800' : 'bg-stone-100 text-stone-500'}`}>{c.is_active ? 'פעיל' : 'מושבת'}</button>
+                <button onClick={() => deleteCoupon(c)} className="text-xs text-stone-400 hover:text-red-600">מחיקה</button>
+              </div>
+            </div>
+          ))}
+          {coupons.length === 0 && <p className="text-stone-400 text-center py-10">עדיין לא יצרתם קופונים.</p>}
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { supabase, Order, Profile } from '../lib/supabase';
+import { supabase, Order, Profile, AccountEntry } from '../lib/supabase';
 import { Invoice } from '../components/Invoice';
 
 const statusLabels: Record<string, string> = {
@@ -15,6 +15,7 @@ const statusLabels: Record<string, string> = {
 export const Account: React.FC = () => {
   const { session, profile, refreshProfile } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [entries, setEntries] = useState<AccountEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [editing, setEditing] = useState(false);
@@ -25,8 +26,12 @@ export const Account: React.FC = () => {
     if (!session) return;
     const { data } = await supabase.from('orders').select('*, order_items(*)').eq('user_id', session.user.id).order('created_at', { ascending: false });
     setOrders((data as Order[]) || []);
+    const { data: ent } = await supabase.from('account_entries').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false });
+    setEntries((ent as AccountEntry[]) || []);
     setLoading(false);
   };
+
+  const balance = entries.reduce((sum, e) => sum + e.amount, 0);
 
   useEffect(() => { load(); }, [session]);
   useEffect(() => { if (profile) setForm({ full_name: profile.full_name || '', phone: profile.phone || '', address: profile.address || '' }); }, [profile]);
@@ -79,6 +84,28 @@ export const Account: React.FC = () => {
           </form>
         )}
       </div>
+
+      {entries.length > 0 && (
+        <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 mb-10 animate-fade-in-up">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-xl text-amber-950">חשבון תשלומים</h2>
+            <p className={`font-extrabold text-xl ${balance < 0 ? 'text-red-600' : 'text-green-700'}`}>
+              {balance < 0 ? `חוב: ₪${Math.abs(balance).toFixed(2)}` : `יתרה: ₪${balance.toFixed(2)}`}
+            </p>
+          </div>
+          <ul className="text-sm divide-y divide-amber-50">
+            {entries.map(e => (
+              <li key={e.id} className="py-2 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-stone-600">{e.note || (e.amount >= 0 ? 'זיכוי' : 'חיוב')}</p>
+                  <p className="text-xs text-stone-400">{new Date(e.created_at).toLocaleString('he-IL')}</p>
+                </div>
+                <span className={`font-bold whitespace-nowrap ${e.amount < 0 ? 'text-red-600' : 'text-green-700'}`}>{e.amount >= 0 ? '+' : ''}₪{e.amount.toFixed(2)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <h2 className="font-bold text-xl text-amber-950 mb-4">ההזמנות שלי</h2>
       {loading ? (
