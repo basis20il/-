@@ -6,6 +6,8 @@ export const Contact: React.FC = () => {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    const body = `שם: ${form.name}\nטלפון: ${form.phone}\n\nהודעה:\n${form.message}`;
+    window.location.href = `mailto:info@2269702.xyz?subject=${encodeURIComponent('פנייה חדשה מהאתר - מגדנות בטעם של עוד')}&body=${encodeURIComponent(body)}`;
     setSent(true);
   };
 
@@ -38,7 +40,7 @@ export const Contact: React.FC = () => {
             <div className="text-center py-10">
               <p className="text-5xl mb-3">🎉</p>
               <p className="font-bold text-amber-950 text-lg">תודה רבה!</p>
-              <p className="text-stone-500 text-sm mt-1">קיבלנו את ההודעה שלכם ונחזור אליכם בהקדם.</p>
+              <p className="text-stone-500 text-sm mt-1">פתחנו עבורכם הודעת מייל מוכנה לשליחה אל info@2269702.xyz — רק לחצו "שלח" בתוכנת המייל. נחזור אליכם בהקדם.</p>
             </div>
           ) : (
             <>
