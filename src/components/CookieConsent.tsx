@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { loadAnalytics } from '../lib/analytics';
 
 const STORAGE_KEY = 'migdanot_cookie_consent_v1';
 
@@ -21,11 +22,14 @@ export const CookieConsent: React.FC = () => {
   const [marketing, setMarketing] = useState(false);
 
   useEffect(() => {
-    if (!getCookiePrefs()) setVisible(true);
+    const existing = getCookiePrefs();
+    if (!existing) setVisible(true);
+    else if (existing.analytics) loadAnalytics();
   }, []);
 
   const save = (prefs: CookiePrefs) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    if (prefs.analytics) loadAnalytics();
     setVisible(false);
   };
 
@@ -37,10 +41,11 @@ export const CookieConsent: React.FC = () => {
         <div className="flex items-start gap-3 mb-4">
           <span className="text-3xl">🍪</span>
           <div>
-            <h3 className="font-bold text-amber-950 text-lg mb-1">השימוש שלנו בעוגיות</h3>
+            <h3 className="font-bold text-amber-950 text-lg mb-1">האתר הזה עוקב אחריכם — בידיעתכם המלאה</h3>
             <p className="text-sm text-stone-600 leading-relaxed">
-              אנו משתמשים בעוגיות (Cookies) ובאחסון מקומי בדפדפן. עוגיות הכרחיות לתפעול האתר (כגון התחברות ועגלת קניות) פעילות תמיד.
-              עוגיות אנליטיקה ושיווק ייטענו רק באישורכם המפורש. לפרטים מלאים ראו את <Link to="/privacy-policy" className="font-bold text-amber-800 hover:underline">מדיניות הפרטיות והעוגיות</Link> שלנו.
+              אנו משתמשים בעוגיות (Cookies), באחסון מקומי, ובכלי מעקב וניתוח גלישה (כגון Google Analytics, Google Tag Manager, Microsoft Clarity, ContentSquare ו-Cloudflare Analytics) שמתעדים כיצד אתם גולשים באתר.
+              עוגיות הכרחיות לתפעול האתר (כגון התחברות ועגלת קניות) פעילות תמיד ואינן ניתנות לכיבוי.
+              <strong> כלי המעקב והניתוח לעיל יופעלו רק אם תלחצו על "אישור הכל" או תאשרו זאת באופן מפורש בהתאמה אישית — אם אינכם מעוניינים שנעקוב אחרי הגלישה שלכם, פשוט לחצו "דחיית הכל".</strong> לפרטים מלאים ראו את <Link to="/privacy-policy" className="font-bold text-amber-800 hover:underline">מדיניות הפרטיות והעוגיות</Link> שלנו.
             </p>
           </div>
         </div>
@@ -56,8 +61,8 @@ export const CookieConsent: React.FC = () => {
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-bold text-sm text-amber-950">אנליטיקה</p>
-                <p className="text-xs text-stone-500">עוזרות לנו להבין כיצד משתמשים באתר ולשפר אותו</p>
+                <p className="font-bold text-sm text-amber-950">אנליטיקה ומעקב גלישה</p>
+                <p className="text-xs text-stone-500">מפעילות את Google Analytics, Google Tag Manager, Microsoft Clarity, ContentSquare ו-Cloudflare Analytics, שמתעדים את אופן השימוש שלכם באתר</p>
               </div>
               <input type="checkbox" checked={analytics} onChange={e => setAnalytics(e.target.checked)} className="w-5 h-5 accent-amber-700" />
             </div>
