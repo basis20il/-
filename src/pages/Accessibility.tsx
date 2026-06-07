@@ -63,6 +63,7 @@ export const Accessibility: React.FC = () => (
           <li>דוא״ל ממונה הנגישות: <span dir="ltr" className="font-bold">accessibility@2269702.xyz</span></li>
           <li>דוא״ל כללי: <span dir="ltr" className="font-bold">info@2269702.xyz</span></li>
           <li>טלפון: <span dir="ltr">077-2269702</span></li>
+          <li>שיחה נגישה באמצעים נוספים (טלפון/וואטסאפ): <span dir="ltr" className="font-bold">055-5615243</span></li>
           <li>כתובת: הרב חזני 1, נתיבות</li>
         </ul>
       </section>
