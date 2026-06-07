@@ -1,6 +1,19 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase, Product, productImage, effectivePrice, averageRating, locationMatchScore } from '../lib/supabase';
+import { supabase, Product, productImage, effectivePrice, averageRating, locationMatchScore, haversineKm } from '../lib/supabase';
+
+const NEARBY_RADIUS_KM = 20;
+
+const geocode = async (place: string): Promise<{ lat: number; lon: number } | null> => {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(place)}&countrycodes=il&limit=1&accept-language=he`);
+    const data = await res.json();
+    const hit = data?.[0];
+    return hit ? { lat: parseFloat(hit.lat), lon: parseFloat(hit.lon) } : null;
+  } catch {
+    return null;
+  }
+};
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 
@@ -19,6 +32,9 @@ export const Menu: React.FC = () => {
   const [savingReview, setSavingReview] = useState(false);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [showAreaSuggestions, setShowAreaSuggestions] = useState(false);
+  const [nearbyAreas, setNearbyAreas] = useState<Set<string>>(new Set());
+  const geocodeCache = useRef<Map<string, { lat: number; lon: number } | null>>(new Map());
 
   const detectLocation = () => {
     if (!navigator.geolocation) { setLocationError('הדפדפן אינו תומך באיתור מיקום.'); return; }
@@ -73,6 +89,41 @@ export const Menu: React.FC = () => {
 
   const categories = useMemo(() => ['הכל', ...Array.from(new Set(products.map(p => p.category).filter(Boolean) as string[]))], [products]);
 
+  const knownAreas = useMemo(() => Array.from(new Set(products.map(p => p.vendor?.area).filter(Boolean) as string[])), [products]);
+
+  const areaSuggestions = useMemo(() => {
+    const q = area.trim().toLowerCase();
+    if (!q) return [];
+    return knownAreas.filter(a => a.toLowerCase().includes(q) && a.toLowerCase() !== q).slice(0, 6);
+  }, [knownAreas, area]);
+
+  useEffect(() => {
+    const q = area.trim();
+    if (!q) { setNearbyAreas(new Set()); return; }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const cache = geocodeCache.current;
+      const getCoords = async (place: string) => {
+        const key = place.trim().toLowerCase();
+        if (cache.has(key)) return cache.get(key)!;
+        const coords = await geocode(place);
+        cache.set(key, coords);
+        return coords;
+      };
+      const origin = await getCoords(q);
+      if (cancelled || !origin) { if (!cancelled) setNearbyAreas(new Set()); return; }
+      const result = new Set<string>();
+      for (const a of knownAreas) {
+        if (cancelled) return;
+        if (a.trim().toLowerCase() === q.toLowerCase()) continue;
+        const coords = await getCoords(a);
+        if (coords && haversineKm(origin, coords) <= NEARBY_RADIUS_KM) result.add(a);
+      }
+      if (!cancelled) setNearbyAreas(result);
+    }, 600);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [area, knownAreas]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = category === 'הכל' ? products : products.filter(p => p.category === category);
@@ -85,10 +136,15 @@ export const Menu: React.FC = () => {
       );
     }
     if (area.trim()) {
-      list = [...list].sort((a, b) => locationMatchScore(b.vendor?.area, area) - locationMatchScore(a.vendor?.area, area));
+      const score = (vendorArea: string | null | undefined) => {
+        const textScore = locationMatchScore(vendorArea, area);
+        const nearbyScore = vendorArea && nearbyAreas.has(vendorArea) ? 2.5 : 0;
+        return Math.max(textScore, nearbyScore);
+      };
+      list = [...list].sort((a, b) => score(b.vendor?.area) - score(a.vendor?.area));
     }
     return list;
-  }, [products, category, search, area]);
+  }, [products, category, search, area, nearbyAreas]);
 
   const handleAdd = (p: Product) => {
     add(p);
@@ -113,14 +169,29 @@ export const Menu: React.FC = () => {
         <div>
           <div className="relative">
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-300">📍</span>
-            <input value={area} onChange={e => setArea(e.target.value)} placeholder="האיזור שלך (לדוגמה: נתיבות) — להצגת הקרובים אליך קודם"
+            <input value={area} onChange={e => { setArea(e.target.value); setShowAreaSuggestions(true); }}
+              onFocus={() => setShowAreaSuggestions(true)} onBlur={() => setTimeout(() => setShowAreaSuggestions(false), 150)}
+              placeholder="האיזור שלך (לדוגמה: נתיבות) — להצגת הקרובים אליך קודם" autoComplete="off"
               className="w-full border border-amber-200 rounded-full pr-11 pl-12 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
             <button type="button" onClick={detectLocation} disabled={locating} title="איתור המיקום שלי אוטומטית" aria-label="איתור מיקום אוטומטי"
               className="absolute left-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-amber-100 hover:bg-amber-200 disabled:opacity-60 text-amber-800 flex items-center justify-center text-sm transition-colors">
               {locating ? '…' : '🎯'}
             </button>
+            {showAreaSuggestions && areaSuggestions.length > 0 && (
+              <ul className="absolute z-20 top-full mt-1.5 w-full bg-white border border-amber-200 rounded-2xl shadow-lg overflow-hidden">
+                {areaSuggestions.map(s => (
+                  <li key={s}>
+                    <button type="button" onMouseDown={() => { setArea(s); setShowAreaSuggestions(false); }}
+                      className="w-full text-right px-4 py-2 text-sm text-stone-600 hover:bg-amber-50 transition-colors">📍 {s}</button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           {locationError && <p className="text-xs text-red-600 mt-1.5 px-2">{locationError}</p>}
+          {!locationError && nearbyAreas.size > 0 && (
+            <p className="text-xs text-amber-700 mt-1.5 px-2">מציגים גם איזורים קרובים (עד כ-{NEARBY_RADIUS_KM} ק"מ): {Array.from(nearbyAreas).join(', ')}</p>
+          )}
         </div>
       </div>
 
