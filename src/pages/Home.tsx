@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase, Product, productImage } from '../lib/supabase';
+import { PromotionsBanner } from '../components/PromotionsBanner';
 
 const features = [
   { icon: '🎂', title: 'עוגות מעוצבות', text: 'עוגות לאירועים, ימי הולדת ושמחות — בעיצוב אישי ומדויק.' },
@@ -55,6 +56,8 @@ export const Home: React.FC = () => {
           </div>
         </div>
       </section>
+
+      <PromotionsBanner />
 
       {/* Features */}
       <section className="max-w-7xl mx-auto px-6 py-20">

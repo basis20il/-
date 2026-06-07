@@ -13,6 +13,7 @@ import { Admin } from './pages/Admin';
 import { DataDeletion } from './pages/DataDeletion';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { CookieConsent } from './components/CookieConsent';
 
 const App: React.FC = () => (
   <div className="min-h-screen flex flex-col bg-white text-stone-800">
@@ -32,6 +33,7 @@ const App: React.FC = () => (
       </Routes>
     </main>
     <Footer />
+    <CookieConsent />
   </div>
 );
 

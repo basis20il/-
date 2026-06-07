@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase, Product, Order, productImage } from '../lib/supabase';
+import { PromotionsAdmin } from '../components/PromotionsAdmin';
 
 const emptyForm = { id: '', name: '', sku: '', description: '', price: '', category: '', image_url: '', image_base64: '' };
 
@@ -21,7 +22,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export const Admin: React.FC = () => {
-  const [tab, setTab] = useState<'products' | 'orders'>('products');
+  const [tab, setTab] = useState<'products' | 'promotions' | 'orders'>('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [form, setForm] = useState(emptyForm);
@@ -130,10 +131,13 @@ export const Admin: React.FC = () => {
 
       <div className="flex bg-amber-50 rounded-full p-1 w-fit mb-10">
         <button onClick={() => setTab('products')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'products' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>מוצרים</button>
+        <button onClick={() => setTab('promotions')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'promotions' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>מבצעים ופרסומים</button>
         <button onClick={() => setTab('orders')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'orders' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>הזמנות ({orders.length})</button>
       </div>
 
-      {tab === 'products' ? (
+      {tab === 'promotions' ? (
+        <PromotionsAdmin />
+      ) : tab === 'products' ? (
         <div className="grid lg:grid-cols-3 gap-8">
           <form onSubmit={submitProduct} className="lg:col-span-1 bg-white rounded-2xl border border-amber-100 shadow-sm p-6 space-y-4 h-fit animate-fade-in-up">
             <h2 className="font-bold text-lg text-amber-950">{editing ? 'עריכת מוצר' : 'הוספת מוצר חדש'}</h2>

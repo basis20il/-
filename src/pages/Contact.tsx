@@ -50,7 +50,7 @@ export const Contact: React.FC = () => {
             <div className="text-center py-10">
               <p className="text-5xl mb-3">🎉</p>
               <p className="font-bold text-amber-950 text-lg">תודה רבה!</p>
-              <p className="text-stone-500 text-sm mt-1">ההודעה שלכם נשלחה אלינו ישירות. נחזור אליכם בהקדם.</p>
+              <p className="text-stone-500 text-sm mt-1">ההודעה שלכם נשלחה אלינו. נחזור אליכם בהקדם.</p>
             </div>
           ) : (
             <>

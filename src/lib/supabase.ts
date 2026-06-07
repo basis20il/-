@@ -61,3 +61,19 @@ export interface Order {
 export function productImage(p: Product): string {
   return p.image_url || p.image_base64 || '';
 }
+
+export interface Promotion {
+  id: string;
+  title: string;
+  description: string | null;
+  image_url: string | null;
+  image_base64: string | null;
+  link_url: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export function promotionImage(p: Promotion): string {
+  return p.image_url || p.image_base64 || '';
+}
