@@ -116,6 +116,11 @@ export const Login: React.FC = () => {
             <input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} dir="ltr"
               className="w-full border border-amber-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-shadow" />
           </div>
+          {mode === 'register' && (
+            <p className="text-[11px] leading-relaxed text-stone-400">
+              מסירת הפרטים אינה חובה על פי דין, אך נדרשת לשם פתיחת חשבון, טיפול בהזמנות ויצירת קשר עימכם; בעל השליטה במאגר המידע הוא מגדנות בטעם של עוד, נתיבות. המידע לא יועבר לצדדים שלישיים מלבד ספקי שירות הנדרשים לצורך הפעלת האתר (כגון אחסון ושליחת הודעות). עומדת לכם הזכות לעיין במידע אודותיכם ולבקש את תיקונו, בהתאם ל<Link to="/privacy-policy" className="underline hover:text-amber-700">מדיניות הפרטיות</Link>.
+            </p>
+          )}
           <button disabled={loading} className="w-full bg-amber-800 hover:bg-amber-900 disabled:opacity-60 text-white font-bold py-3 rounded-xl shadow transition-all duration-300 hover:-translate-y-0.5">
             {loading ? 'רגע...' : mode === 'login' ? 'התחברות' : 'הרשמה'}
           </button>
