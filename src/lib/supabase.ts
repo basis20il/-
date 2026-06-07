@@ -66,6 +66,7 @@ export interface Order {
   notes: string | null;
   pickup_date: string | null;
   invoice_number: string | null;
+  payment_method: string | null;
   created_at: string;
   order_items?: OrderItem[];
 }

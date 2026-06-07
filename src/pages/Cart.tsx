@@ -8,6 +8,7 @@ export const Cart: React.FC = () => {
   const { lines, setQuantity, remove, clear, total } = useCart();
   const { session, profile } = useAuth();
   const navigate = useNavigate();
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'apple_pay' | 'google_pay' | 'cash'>('card');
   const [notes, setNotes] = useState('');
   const [pickupDate, setPickupDate] = useState('');
   const [placing, setPlacing] = useState(false);
@@ -28,6 +29,7 @@ export const Cart: React.FC = () => {
         notes: notes || null,
         pickup_date: pickupDate || null,
         invoice_number: invoiceNumber,
+        payment_method: paymentMethod,
         status: 'pending',
       }).select().single();
       if (orderErr) throw orderErr;
@@ -107,6 +109,25 @@ export const Cart: React.FC = () => {
               <label className="block text-sm font-bold text-amber-950 mb-1.5">הערות להזמנה</label>
               <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)}
                 className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" placeholder="לדוגמה: ללא אגוזים, כיתוב על העוגה..." />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-amber-950 mb-1.5">אופן תשלום</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { key: 'card', label: 'כרטיס אשראי', icon: '💳' },
+                  { key: 'apple_pay', label: 'Apple Pay', icon: '' },
+                  { key: 'google_pay', label: 'Google Pay', icon: '🅖' },
+                  { key: 'cash', label: 'מזומן', icon: '💵' },
+                ].map(opt => (
+                  <button key={opt.key} type="button" onClick={() => setPaymentMethod(opt.key as typeof paymentMethod)}
+                    className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-colors ${paymentMethod === opt.key ? 'bg-amber-100 border-amber-400 text-amber-900' : 'bg-white border-amber-200 text-stone-600 hover:bg-amber-50'}`}>
+                    <span>{opt.icon}</span>{opt.label}
+                  </button>
+                ))}
+              </div>
+              {paymentMethod === 'cash' && (
+                <p className="mt-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">שימו לב: בבחירה בתשלום במזומן, הליך ההזמנה ימתין לתשלום בעת האיסוף/האספקה.</p>
+              )}
             </div>
             <div className="flex justify-between items-center pt-2 border-t border-amber-100">
               <span className="font-bold text-amber-950">סה״כ לתשלום</span>

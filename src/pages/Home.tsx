@@ -56,8 +56,8 @@ export const Home: React.FC = () => {
             </div>
           </div>
 
-          <div className="relative animate-fade-in-up [animation-delay:200ms]">
-            <div className="aspect-square rounded-[3rem] bg-gradient-to-br from-amber-200 via-amber-100 to-rose-100 shadow-2xl flex items-center justify-center text-[10rem] animate-float">
+          <div className="relative animate-fade-in-up [animation-delay:200ms] max-w-md mx-auto lg:max-w-none w-full">
+            <div className="aspect-[5/4] rounded-[3rem] bg-gradient-to-br from-amber-200 via-amber-100 to-rose-100 shadow-2xl flex items-center justify-center text-[8rem] sm:text-[10rem] animate-float">
               🍰
             </div>
             <div className="absolute -bottom-6 -right-6 bg-white rounded-2xl shadow-xl px-6 py-4 animate-fade-in-up [animation-delay:500ms]">
