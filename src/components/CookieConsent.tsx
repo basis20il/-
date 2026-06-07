@@ -41,11 +41,11 @@ export const CookieConsent: React.FC = () => {
         <div className="flex items-start gap-3 mb-4">
           <span className="text-3xl">🍪</span>
           <div>
-            <h3 className="font-bold text-amber-950 text-lg mb-1">האתר הזה עוקב אחריכם — בידיעתכם המלאה</h3>
+            <h3 className="font-bold text-amber-950 text-lg mb-1">מידע לגבי קבצי קוקיז וכלי איסוף נתונים</h3>
             <p className="text-sm text-stone-600 leading-relaxed">
-              אנו משתמשים בעוגיות (Cookies), באחסון מקומי, ובכלי מעקב וניתוח גלישה (כגון Google Analytics, Google Tag Manager, Microsoft Clarity, ContentSquare ו-Cloudflare Analytics) שמתעדים כיצד אתם גולשים באתר.
+              אנו משתמשים בעוגיות (Cookies), באחסון מקומי, ובכלי מעקב וניתוח גלישה שמתעדים כיצד אתם גולשים באתר.
               עוגיות הכרחיות לתפעול האתר (כגון התחברות ועגלת קניות) פעילות תמיד ואינן ניתנות לכיבוי.
-              <strong> כלי המעקב והניתוח לעיל יופעלו רק אם תלחצו על "אישור הכל" או תאשרו זאת באופן מפורש בהתאמה אישית — אם אינכם מעוניינים שנעקוב אחרי הגלישה שלכם, פשוט לחצו "דחיית הכל".</strong> לפרטים מלאים ראו את <Link to="/privacy-policy" className="font-bold text-amber-800 hover:underline">מדיניות הפרטיות והעוגיות</Link> שלנו.
+              <strong> כלי המעקב והניתוח יופעלו רק אם תלחצו על "אישור הכל" או תאשרו זאת באופן מפורש בהתאמה אישית — אם אינכם מעוניינים שנעקוב אחרי הגלישה שלכם, פשוט לחצו "דחיית הכל".</strong> לפרטים מלאים ראו את <Link to="/privacy-policy" className="font-bold text-amber-800 hover:underline">מדיניות הפרטיות והעוגיות</Link> שלנו.
             </p>
           </div>
         </div>
@@ -62,7 +62,7 @@ export const CookieConsent: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-bold text-sm text-amber-950">אנליטיקה ומעקב גלישה</p>
-                <p className="text-xs text-stone-500">מפעילות את Google Analytics, Google Tag Manager, Microsoft Clarity, ContentSquare ו-Cloudflare Analytics, שמתעדים את אופן השימוש שלכם באתר</p>
+                <p className="text-xs text-stone-500">מפעילות כלי מעקב וניתוח גלישה שמתעדים את אופן השימוש שלכם באתר</p>
               </div>
               <input type="checkbox" checked={analytics} onChange={e => setAnalytics(e.target.checked)} className="w-5 h-5 accent-amber-700" />
             </div>
