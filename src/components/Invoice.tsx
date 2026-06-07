@@ -7,7 +7,7 @@ export const Invoice: React.FC<{ order: Order; onClose: () => void }> = ({ order
       <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-8 animate-fade-in-up" onClick={e => e.stopPropagation()} id="invoice-print">
         <div className="flex justify-between items-start mb-6 pb-4 border-b border-amber-100">
           <div>
-            <p className="font-serif text-2xl font-bold text-amber-950">חשבונית מס / קבלה</p>
+            <p className="font-extrabold text-2xl text-amber-950">חשבונית מס / קבלה</p>
             <p className="text-sm text-stone-400 mt-1">מגדנות בטעם של עוד · נתיבות</p>
           </div>
           <span className="text-3xl">🧾</span>
@@ -43,7 +43,7 @@ export const Invoice: React.FC<{ order: Order; onClose: () => void }> = ({ order
 
         <div className="flex justify-between items-center pt-4 border-t border-amber-100 mb-8">
           <span className="font-bold text-lg text-amber-950">סה״כ לתשלום</span>
-          <span className="font-serif font-bold text-2xl text-amber-800">₪{order.total.toFixed(2)}</span>
+          <span className="font-extrabold text-2xl text-amber-800">₪{order.total.toFixed(2)}</span>
         </div>
 
         <div className="flex gap-3 print:hidden">

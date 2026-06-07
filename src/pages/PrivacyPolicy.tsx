@@ -4,7 +4,7 @@ export const PrivacyPolicy: React.FC = () => (
   <div className="max-w-3xl mx-auto px-6 py-20">
     <div className="text-center mb-12 animate-fade-in-up">
       <span className="inline-block bg-amber-100 text-amber-900 text-xs font-bold tracking-wide px-4 py-2 rounded-full mb-4">פרטיות</span>
-      <h1 className="font-serif text-4xl font-bold text-amber-950 mb-3">מדיניות פרטיות</h1>
+      <h1 className="font-extrabold text-4xl text-amber-950 mb-3">מדיניות פרטיות</h1>
       <p className="text-stone-400 text-sm">עודכן לאחרונה: יוני 2026</p>
     </div>
 

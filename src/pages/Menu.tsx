@@ -27,7 +27,7 @@ export const Menu: React.FC = () => {
     <div className="max-w-7xl mx-auto px-6 py-16">
       <div className="text-center mb-12 animate-fade-in-up">
         <span className="inline-block bg-amber-100 text-amber-900 text-xs font-bold tracking-wide px-4 py-2 rounded-full mb-4">התפריט שלנו</span>
-        <h1 className="font-serif text-4xl sm:text-5xl font-bold text-amber-950 mb-4">כל המתוקים שלנו במקום אחד</h1>
+        <h1 className="font-extrabold text-4xl sm:text-5xl text-amber-950 mb-4">כל המתוקים שלנו במקום אחד</h1>
         <p className="text-stone-500 max-w-xl mx-auto">בחרו את המוצרים האהובים עליכם והוסיפו לעגלה — נטפל בהזמנה במהירות ובדייקנות.</p>
       </div>
 
@@ -59,7 +59,7 @@ export const Menu: React.FC = () => {
               <div className="p-5 flex flex-col flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-bold text-amber-950">{p.name}</h3>
-                  <span className="font-serif font-bold text-amber-800 whitespace-nowrap">₪{p.price.toFixed(2)}</span>
+                  <span className="font-extrabold text-amber-800 whitespace-nowrap">₪{p.price.toFixed(2)}</span>
                 </div>
                 {p.category && <span className="text-xs text-amber-600 mt-1">{p.category}</span>}
                 <p className="text-sm text-stone-400 mt-2 leading-relaxed flex-1">{p.description}</p>

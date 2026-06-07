@@ -125,7 +125,7 @@ export const Admin: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-16">
-      <h1 className="font-serif text-4xl font-bold text-amber-950 mb-2 animate-fade-in-up">ניהול הקונדיטוריה</h1>
+      <h1 className="font-extrabold text-4xl text-amber-950 mb-2 animate-fade-in-up">ניהול הקונדיטוריה</h1>
       <p className="text-stone-400 mb-8">ניהול מוצרים, תמונות והזמנות</p>
 
       <div className="flex bg-amber-50 rounded-full p-1 w-fit mb-10">

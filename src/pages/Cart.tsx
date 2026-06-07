@@ -55,7 +55,7 @@ export const Cart: React.FC = () => {
     return (
       <div className="max-w-xl mx-auto px-6 py-28 text-center animate-fade-in-up">
         <p className="text-6xl mb-4">🎉</p>
-        <h1 className="font-serif text-3xl font-bold text-amber-950 mb-3">ההזמנה התקבלה בהצלחה!</h1>
+        <h1 className="font-extrabold text-3xl text-amber-950 mb-3">ההזמנה התקבלה בהצלחה!</h1>
         <p className="text-stone-500 mb-8">נחזור אליכם בהקדם לתיאום פרטי האיסוף/המשלוח. תודה שבחרתם בנו ❤️</p>
         <div className="flex justify-center gap-4">
           <Link to="/account" className="bg-amber-800 hover:bg-amber-900 text-white font-bold px-6 py-3 rounded-full transition-colors">ההזמנות שלי</Link>
@@ -67,7 +67,7 @@ export const Cart: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-16">
-      <h1 className="font-serif text-4xl font-bold text-amber-950 mb-10 text-center animate-fade-in-up">העגלה שלי</h1>
+      <h1 className="font-extrabold text-4xl text-amber-950 mb-10 text-center animate-fade-in-up">העגלה שלי</h1>
 
       {lines.length === 0 ? (
         <div className="text-center py-20">
@@ -110,7 +110,7 @@ export const Cart: React.FC = () => {
             </div>
             <div className="flex justify-between items-center pt-2 border-t border-amber-100">
               <span className="font-bold text-amber-950">סה״כ לתשלום</span>
-              <span className="font-serif font-bold text-2xl text-amber-800">₪{total.toFixed(2)}</span>
+              <span className="font-extrabold text-2xl text-amber-800">₪{total.toFixed(2)}</span>
             </div>
             {error && <p className="text-red-600 text-sm">{error}</p>}
             <button onClick={placeOrder} disabled={placing}

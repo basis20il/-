@@ -49,7 +49,7 @@ export const Home: React.FC = () => {
               🍰
             </div>
             <div className="absolute -bottom-6 -right-6 bg-white rounded-2xl shadow-xl px-6 py-4 animate-fade-in-up [animation-delay:500ms]">
-              <p className="font-serif text-2xl font-bold text-amber-900">100%</p>
+              <p className="font-extrabold text-2xl text-amber-900">100%</p>
               <p className="text-xs text-stone-500">חומרי גלם איכותיים</p>
             </div>
           </div>
@@ -74,7 +74,7 @@ export const Home: React.FC = () => {
         <section className="bg-amber-50/60 py-20">
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex items-end justify-between mb-10">
-              <h2 className="font-serif text-3xl sm:text-4xl font-bold text-amber-950">המומלצים שלנו</h2>
+              <h2 className="font-extrabold text-3xl sm:text-4xl text-amber-950">המומלצים שלנו</h2>
               <Link to="/menu" className="text-amber-800 font-bold hover:underline">לכל התפריט ←</Link>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -86,7 +86,7 @@ export const Home: React.FC = () => {
                   <div className="p-5">
                     <h3 className="font-bold text-amber-950">{p.name}</h3>
                     <p className="text-sm text-stone-400 mt-1 line-clamp-2">{p.description}</p>
-                    <p className="font-serif font-bold text-amber-800 mt-3">₪{p.price.toFixed(2)}</p>
+                    <p className="font-extrabold text-amber-800 mt-3">₪{p.price.toFixed(2)}</p>
                   </div>
                 </div>
               ))}
@@ -97,7 +97,7 @@ export const Home: React.FC = () => {
 
       {/* CTA */}
       <section className="max-w-5xl mx-auto px-6 py-24 text-center">
-        <h2 className="font-serif text-3xl sm:text-4xl font-bold text-amber-950 mb-4">מתכננים אירוע מיוחד?</h2>
+        <h2 className="font-extrabold text-3xl sm:text-4xl text-amber-950 mb-4">מתכננים אירוע מיוחד?</h2>
         <p className="text-stone-600 max-w-2xl mx-auto mb-8 leading-relaxed">אנחנו מתמחים בעוגות ומגשי מתוקים לאירועים מכובדים — חתונות, בר/בת מצווה, כנסים עסקיים ועוד. ספרו לנו מה אתם צריכים ונתאים לכם בדיוק את מה שמתאים.</p>
         <Link to="/contact" className="inline-block bg-amber-800 hover:bg-amber-900 text-white font-bold px-10 py-4 rounded-full shadow-lg transition-all duration-300 hover:-translate-y-1">דברו איתנו</Link>
       </section>

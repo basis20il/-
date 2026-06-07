@@ -53,7 +53,7 @@ export const Login: React.FC = () => {
       <div className="bg-white rounded-3xl border border-amber-100 shadow-xl p-8 animate-fade-in-up">
         <div className="text-center mb-8">
           <span className="text-4xl">🥐</span>
-          <h1 className="font-serif text-2xl font-bold text-amber-950 mt-2">{mode === 'login' ? 'התחברות לחשבון' : 'הרשמה לאתר'}</h1>
+          <h1 className="font-extrabold text-2xl text-amber-950 mt-2">{mode === 'login' ? 'התחברות לחשבון' : 'הרשמה לאתר'}</h1>
           <p className="text-stone-400 text-sm mt-1">בטעם של עוד — קונדיטוריה בנתיבות</p>
         </div>
 

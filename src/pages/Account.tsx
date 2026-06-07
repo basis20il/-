@@ -42,7 +42,7 @@ export const Account: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-16">
-      <h1 className="font-serif text-4xl font-bold text-amber-950 mb-8 animate-fade-in-up">החשבון שלי</h1>
+      <h1 className="font-extrabold text-4xl text-amber-950 mb-8 animate-fade-in-up">החשבון שלי</h1>
 
       <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 mb-10 animate-fade-in-up">
         {!editing ? (
