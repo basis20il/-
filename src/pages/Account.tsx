@@ -5,6 +5,7 @@ import { Invoice } from '../components/Invoice';
 
 const statusLabels: Record<string, string> = {
   pending: 'ממתינה לאישור',
+  needs_info: 'יש לעדכן כתובת וטלפון להמשך',
   confirmed: 'אושרה',
   ready: 'מוכנה לאיסוף',
   completed: 'הושלמה',

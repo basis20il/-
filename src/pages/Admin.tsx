@@ -16,9 +16,9 @@ const parseCsv = (text: string): Record<string, string>[] => {
   });
 };
 
-const statusOptions = ['pending', 'confirmed', 'ready', 'completed', 'cancelled'];
+const statusOptions = ['pending', 'needs_info', 'confirmed', 'ready', 'completed', 'cancelled'];
 const statusLabels: Record<string, string> = {
-  pending: 'ממתינה לאישור', confirmed: 'אושרה', ready: 'מוכנה לאיסוף', completed: 'הושלמה', cancelled: 'בוטלה',
+  pending: 'ממתינה לאישור', needs_info: 'יש לעדכן כתובת וטלפון להמשך', confirmed: 'אושרה', ready: 'מוכנה לאיסוף', completed: 'הושלמה', cancelled: 'בוטלה',
 };
 
 export const Admin: React.FC = () => {

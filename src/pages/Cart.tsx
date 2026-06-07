@@ -15,7 +15,7 @@ export const Cart: React.FC = () => {
   const [done, setDone] = useState(false);
 
   const placeOrder = async () => {
-    if (!session) { navigate('/login'); return; }
+    if (!session) { navigate('/login', { state: { from: '/cart' } }); return; }
     setPlacing(true);
     setError(null);
     try {

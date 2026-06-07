@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 export const Login: React.FC = () => {
@@ -13,12 +13,14 @@ export const Login: React.FC = () => {
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from || '/';
 
   const signInWithProvider = async (provider: 'google' | 'facebook') => {
     setError(null);
     await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: `${window.location.origin}${from}` },
     });
   };
 
@@ -31,7 +33,7 @@ export const Login: React.FC = () => {
       if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate('/');
+        navigate(from);
       } else {
         const { error } = await supabase.auth.signUp({
           email, password,
