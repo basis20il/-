@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { supabase, effectivePrice } from '../lib/supabase';
+import { supabase, effectivePrice, Coupon } from '../lib/supabase';
 
 export const Cart: React.FC = () => {
   const { lines, setQuantity, remove, clear, total } = useCart();
@@ -14,6 +14,43 @@ export const Cart: React.FC = () => {
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [couponInput, setCouponInput] = useState('');
+  const [coupon, setCoupon] = useState<Coupon | null>(null);
+  const [couponMsg, setCouponMsg] = useState<string | null>(null);
+  const [checkingCoupon, setCheckingCoupon] = useState(false);
+
+  const lineDiscount = (productVendorId: string | null) => {
+    if (!coupon) return 0;
+    if (coupon.vendor_id && coupon.vendor_id !== productVendorId) return 0;
+    return coupon.discount_percent;
+  };
+
+  const discountedTotal = lines.reduce((sum, l) => {
+    const price = effectivePrice(l.product, profile);
+    const pct = lineDiscount(l.product.vendor_id || null);
+    return sum + price * (1 - pct / 100) * l.quantity;
+  }, 0);
+
+  const applyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    setCheckingCoupon(true);
+    setCouponMsg(null);
+    const { data } = await supabase.from('coupons').select('*').eq('code', code).eq('is_active', true);
+    const list = (data as Coupon[]) || [];
+    const valid = list.find(c => !c.expires_at || new Date(c.expires_at) >= new Date());
+    if (!valid) {
+      setCoupon(null);
+      setCouponMsg('קוד קופון לא נמצא, אינו בתוקף, או שפג תוקפו.');
+    } else if (valid.vendor_id && !lines.some(l => l.product.vendor_id === valid.vendor_id)) {
+      setCoupon(null);
+      setCouponMsg('הקופון תקף רק עבור מוצרים מקונדיטוריה מסוימת שאינה בעגלה שלכם.');
+    } else {
+      setCoupon(valid);
+      setCouponMsg(valid.vendor_id ? `הקופון הופעל — הנחה של ${valid.discount_percent}% על מוצרי הקונדיטוריה הרלוונטית.` : `הקופון הופעל — הנחה של ${valid.discount_percent}% על כל ההזמנה.`);
+    }
+    setCheckingCoupon(false);
+  };
 
   const placeOrder = async () => {
     if (!session) { navigate('/login', { state: { from: '/cart' } }); return; }
@@ -29,7 +66,10 @@ export const Cart: React.FC = () => {
 
       let i = 0;
       for (const [vendorId, groupLines] of groups) {
-        const groupTotal = groupLines.reduce((sum, l) => sum + effectivePrice(l.product, profile) * l.quantity, 0);
+        const groupTotal = groupLines.reduce((sum, l) => {
+          const pct = lineDiscount(l.product.vendor_id || null);
+          return sum + effectivePrice(l.product, profile) * (1 - pct / 100) * l.quantity;
+        }, 0);
         const invoiceNumber = `INV-${Date.now().toString().slice(-8)}${i ? `-${i}` : ''}`;
         i++;
         const { data: order, error: orderErr } = await supabase.from('orders').insert({
@@ -50,7 +90,7 @@ export const Cart: React.FC = () => {
           order_id: order.id,
           product_id: l.product.id,
           product_name: l.product.name,
-          unit_price: effectivePrice(l.product, profile),
+          unit_price: effectivePrice(l.product, profile) * (1 - lineDiscount(l.product.vendor_id || null) / 100),
           quantity: l.quantity,
         }));
         const { error: itemsErr } = await supabase.from('order_items').insert(items);
@@ -143,39 +183,39 @@ export const Cart: React.FC = () => {
                 ))}
               </div>
               {paymentMethod === 'card' && (
-                <div className="mt-3 bg-amber-50/60 border border-amber-100 rounded-xl p-4 space-y-3">
-                  <p className="text-xs text-amber-700 mb-1">פרטי כרטיס אשראי (תצוגה לדוגמה — החיוב בפועל יתבצע בתיאום מולכם)</p>
-                  <div>
-                    <label className="block text-xs font-bold text-amber-950 mb-1">מספר כרטיס</label>
-                    <input type="text" inputMode="numeric" placeholder="0000 0000 0000 0000" disabled
-                      className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm bg-white disabled:opacity-70" dir="ltr" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-amber-950 mb-1">תוקף</label>
-                      <input type="text" placeholder="MM/YY" disabled
-                        className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm bg-white disabled:opacity-70" dir="ltr" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-amber-950 mb-1">CVV</label>
-                      <input type="text" placeholder="123" disabled
-                        className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm bg-white disabled:opacity-70" dir="ltr" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-amber-950 mb-1">שם בעל הכרטיס</label>
-                    <input type="text" placeholder="כפי שמופיע על הכרטיס" disabled
-                      className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm bg-white disabled:opacity-70" />
-                  </div>
+                <div className="mt-3 bg-amber-50/60 border border-amber-100 rounded-xl p-3 flex items-center gap-2">
+                  <span className="text-lg">💳</span>
+                  <input type="text" inputMode="numeric" placeholder="מספר כרטיס" disabled
+                    className="flex-1 min-w-0 border border-amber-200 rounded-lg px-2.5 py-1.5 text-sm bg-white disabled:opacity-70" dir="ltr" />
+                  <input type="text" placeholder="MM/YY" disabled
+                    className="w-16 border border-amber-200 rounded-lg px-2 py-1.5 text-sm bg-white disabled:opacity-70 text-center" dir="ltr" />
+                  <input type="text" placeholder="CVV" disabled
+                    className="w-14 border border-amber-200 rounded-lg px-2 py-1.5 text-sm bg-white disabled:opacity-70 text-center" dir="ltr" />
                 </div>
+              )}
+              {paymentMethod === 'card' && (
+                <p className="mt-1.5 text-[11px] text-stone-400">תצוגה לדוגמה — החיוב בפועל יתואם איתכם אישית.</p>
               )}
               {paymentMethod === 'cash' && (
                 <p className="mt-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">שימו לב: בבחירה בתשלום במזומן, הליך ההזמנה ימתין לתשלום.</p>
               )}
             </div>
+            <div>
+              <label className="block text-sm font-bold text-amber-950 mb-1.5">קוד קופון</label>
+              <div className="flex gap-2">
+                <input value={couponInput} onChange={e => setCouponInput(e.target.value)} dir="ltr" placeholder="הזינו קוד קופון"
+                  className="flex-1 border border-amber-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                <button type="button" onClick={applyCoupon} disabled={checkingCoupon}
+                  className="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-4 py-2 rounded-xl text-sm transition-colors disabled:opacity-60">{checkingCoupon ? '...' : 'החלה'}</button>
+              </div>
+              {couponMsg && <p className={`text-xs mt-1.5 ${coupon ? 'text-green-700' : 'text-red-600'}`}>{couponMsg}</p>}
+            </div>
             <div className="flex justify-between items-center pt-2 border-t border-amber-100">
               <span className="font-bold text-amber-950">סה״כ לתשלום</span>
-              <span className="font-extrabold text-2xl text-amber-800">₪{total.toFixed(2)}</span>
+              <div className="text-left">
+                {coupon && <p className="text-xs text-stone-400 line-through">₪{total.toFixed(2)}</p>}
+                <span className="font-extrabold text-2xl text-amber-800">₪{discountedTotal.toFixed(2)}</span>
+              </div>
             </div>
             <p className="text-[11px] leading-relaxed text-stone-400">
               מסירת הפרטים אינה חובה על פי דין, אך נדרשת לשם ביצוע ההזמנה ויצירת קשר עימכם לתיאום אספקה/איסוף; בעל השליטה במאגר המידע הוא מגדנות בטעם של עוד, נתיבות. המידע ישמש לניהול ההזמנה והשירות בלבד ולא יועבר לצדדים שלישיים מלבד ספקי שירות הנדרשים לתפעול האתר. עומדת לכם הזכות לעיין במידע ולבקש את תיקונו, בהתאם ל<Link to="/privacy-policy" className="underline hover:text-amber-700">מדיניות הפרטיות</Link>.

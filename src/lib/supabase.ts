@@ -130,6 +130,26 @@ export interface Vendor {
 
 export const vendorStatusLabels: Record<string, string> = { pending: 'ממתינה לאישור', approved: 'מאושרת', rejected: 'נדחתה' };
 
+export interface AccountEntry {
+  id: string;
+  user_id: string;
+  amount: number;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface Coupon {
+  id: string;
+  vendor_id: string | null;
+  code: string;
+  discount_percent: number;
+  is_active: boolean;
+  expires_at: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
 export interface Category {
   id: string;
   name: string;
