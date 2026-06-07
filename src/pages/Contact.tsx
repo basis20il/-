@@ -1,14 +1,24 @@
 import React, { useState } from 'react';
+import { sendContactEmail } from '../lib/supabase';
 
 export const Contact: React.FC = () => {
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', phone: '', message: '' });
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const body = `שם: ${form.name}\nטלפון: ${form.phone}\n\nהודעה:\n${form.message}`;
-    window.location.href = `mailto:info@2269702.xyz?subject=${encodeURIComponent('פנייה חדשה מהאתר - מגדנות בטעם של עוד')}&body=${encodeURIComponent(body)}`;
-    setSent(true);
+    setError(null);
+    setSending(true);
+    try {
+      await sendContactEmail({ type: 'contact', name: form.name, phone: form.phone, message: form.message });
+      setSent(true);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -40,10 +50,11 @@ export const Contact: React.FC = () => {
             <div className="text-center py-10">
               <p className="text-5xl mb-3">🎉</p>
               <p className="font-bold text-amber-950 text-lg">תודה רבה!</p>
-              <p className="text-stone-500 text-sm mt-1">פתחנו עבורכם הודעת מייל מוכנה לשליחה אל info@2269702.xyz — רק לחצו "שלח" בתוכנת המייל. נחזור אליכם בהקדם.</p>
+              <p className="text-stone-500 text-sm mt-1">ההודעה שלכם נשלחה אלינו ישירות. נחזור אליכם בהקדם.</p>
             </div>
           ) : (
             <>
+              {error && <p className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3">{error}</p>}
               <div>
                 <label className="block text-sm font-bold text-amber-950 mb-1.5">שם מלא</label>
                 <input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
@@ -59,7 +70,7 @@ export const Contact: React.FC = () => {
                 <textarea required rows={4} value={form.message} onChange={e => setForm({ ...form, message: e.target.value })}
                   className="w-full border border-amber-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-shadow resize-none" />
               </div>
-              <button className="w-full bg-amber-800 hover:bg-amber-900 text-white font-bold py-3 rounded-xl shadow transition-all duration-300 hover:-translate-y-0.5">שליחה</button>
+              <button disabled={sending} className="w-full bg-amber-800 hover:bg-amber-900 disabled:opacity-60 text-white font-bold py-3 rounded-xl shadow transition-all duration-300 hover:-translate-y-0.5">{sending ? 'שולח...' : 'שליחה'}</button>
             </>
           )}
         </form>

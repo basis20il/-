@@ -5,6 +5,15 @@ const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 export const supabase = createClient(url, anonKey);
 
+export const sendContactEmail = async (payload: { type: 'contact' | 'data-deletion'; name?: string; phone?: string; email?: string; message?: string }) => {
+  const res = await fetch(`${url}/functions/v1/send-contact-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('שליחת ההודעה נכשלה, נסו שוב מאוחר יותר.');
+};
+
 export interface Profile {
   id: string;
   full_name: string | null;

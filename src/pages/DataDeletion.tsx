@@ -1,13 +1,28 @@
 import React, { useState } from 'react';
+import { sendContactEmail } from '../lib/supabase';
 
 export const DataDeletion: React.FC = () => {
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    window.location.href = `mailto:info@2269702.xyz?subject=${encodeURIComponent('בקשה למחיקת נתונים אישיים')}&body=${encodeURIComponent(`שלום,\nאני מבקש/ת למחוק את כל הנתונים האישיים שלי מאתר מגדנות בטעם של עוד.\nכתובת המייל הרשומה בחשבון: ${email}`)}`;
-    setSent(true);
+    setError(null);
+    setSending(true);
+    try {
+      await sendContactEmail({
+        type: 'data-deletion',
+        email,
+        message: `בקשה למחיקת כל הנתונים האישיים מאתר מגדנות בטעם של עוד.\nכתובת המייל הרשומה בחשבון: ${email}`,
+      });
+      setSent(true);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -25,18 +40,19 @@ export const DataDeletion: React.FC = () => {
         {sent ? (
           <div className="text-center py-6">
             <p className="text-5xl mb-3">📧</p>
-            <p className="font-bold text-amber-950 text-lg">נפתחה עבורכם הודעת מייל</p>
-            <p className="text-stone-500 text-sm mt-1">אם לא נפתח אצלכם תוכנת מייל אוטומטית, אפשר לשלוח ידנית לכתובת <span dir="ltr" className="font-bold">info@2269702.xyz</span></p>
+            <p className="font-bold text-amber-950 text-lg">הבקשה נשלחה אלינו ישירות</p>
+            <p className="text-stone-500 text-sm mt-1">נטפל בבקשתכם למחיקת המידע האישי תוך זמן סביר.</p>
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4">
+            {error && <p className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3">{error}</p>}
             <div>
               <label className="block text-sm font-bold text-amber-950 mb-1.5">כתובת המייל הרשומה בחשבון שלכם</label>
               <input type="email" required dir="ltr" value={email} onChange={e => setEmail(e.target.value)}
                 className="w-full border border-amber-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-400" />
             </div>
-            <button className="w-full bg-amber-800 hover:bg-amber-900 text-white font-bold py-3 rounded-xl shadow transition-all duration-300 hover:-translate-y-0.5">
-              שליחת בקשת מחיקה למייל info@2269702.xyz
+            <button disabled={sending} className="w-full bg-amber-800 hover:bg-amber-900 disabled:opacity-60 text-white font-bold py-3 rounded-xl shadow transition-all duration-300 hover:-translate-y-0.5">
+              {sending ? 'שולח...' : 'שליחת בקשת מחיקה'}
             </button>
           </form>
         )}
