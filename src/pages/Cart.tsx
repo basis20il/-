@@ -164,6 +164,9 @@ export const Cart: React.FC = () => {
               <span className="font-bold text-amber-950">סה״כ לתשלום</span>
               <span className="font-extrabold text-2xl text-amber-800">₪{total.toFixed(2)}</span>
             </div>
+            <p className="text-[11px] leading-relaxed text-stone-400">
+              מסירת הפרטים אינה חובה על פי דין, אך נדרשת לשם ביצוע ההזמנה ויצירת קשר עימכם לתיאום אספקה/איסוף; בעל השליטה במאגר המידע הוא מגדנות בטעם של עוד, נתיבות. המידע ישמש לניהול ההזמנה והשירות בלבד ולא יועבר לצדדים שלישיים מלבד ספקי שירות הנדרשים לתפעול האתר. עומדת לכם הזכות לעיין במידע ולבקש את תיקונו, בהתאם ל<Link to="/privacy-policy" className="underline hover:text-amber-700">מדיניות הפרטיות</Link>.
+            </p>
             {error && <p className="text-red-600 text-sm">{error}</p>}
             <button onClick={placeOrder} disabled={placing}
               className="w-full bg-amber-800 hover:bg-amber-900 disabled:opacity-60 text-white font-bold py-3 rounded-xl shadow transition-all duration-300 hover:-translate-y-0.5">

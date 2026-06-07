@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { sendContactEmail } from '../lib/supabase';
 
 export const Contact: React.FC = () => {
@@ -70,6 +71,9 @@ export const Contact: React.FC = () => {
                 <textarea required rows={4} value={form.message} onChange={e => setForm({ ...form, message: e.target.value })}
                   className="w-full border border-amber-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-shadow resize-none" />
               </div>
+              <p className="text-[11px] leading-relaxed text-stone-400">
+                מסירת הפרטים אינה חובה על פי דין, אך נדרשת לשם מענה לפנייתכם; בעל השליטה במאגר המידע הוא מגדנות בטעם של עוד, נתיבות. המידע ישמש לשם יצירת קשר עימכם בלבד ולא יועבר לצדדים שלישיים מלבד ספקי שירות הנדרשים לתפעול האתר. עומדת לכם הזכות לעיין במידע ולבקש את תיקונו, בהתאם ל<Link to="/privacy-policy" className="underline hover:text-amber-700">מדיניות הפרטיות</Link>.
+              </p>
               <button disabled={sending} className="w-full bg-amber-800 hover:bg-amber-900 disabled:opacity-60 text-white font-bold py-3 rounded-xl shadow transition-all duration-300 hover:-translate-y-0.5">{sending ? 'שולח...' : 'שליחה'}</button>
             </>
           )}
