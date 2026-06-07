@@ -68,13 +68,13 @@ export const AccessibilityWidget: React.FC = () => {
   return (
     <>
       <button onClick={() => setOpen(o => !o)} aria-label="תפריט נגישות"
-        className="fixed bottom-6 left-6 z-40 w-[4.5rem] h-[4.5rem] rounded-full bg-amber-800 hover:bg-amber-900 text-white shadow-xl flex items-center justify-center text-3xl transition-transform hover:scale-110">
+        className="fixed bottom-6 left-6 z-[60] w-[4.5rem] h-[4.5rem] rounded-full bg-amber-800 hover:bg-amber-900 text-white shadow-xl flex items-center justify-center text-3xl transition-transform hover:scale-110">
         ♿
       </button>
 
       {open && (
-        <div className="fixed bottom-28 left-6 z-40 w-[22rem] max-w-[calc(100vw-3rem)] max-h-[75vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-amber-100 animate-fade-in-up">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-amber-100">
+        <div className="fixed bottom-28 left-6 z-[60] w-[22rem] max-w-[calc(100vw-3rem)] max-h-[calc(100vh-10rem)] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-amber-100 animate-fade-in-up">
+          <div className="sticky top-0 bg-white flex items-center justify-between px-5 py-4 border-b border-amber-100 z-10">
             <h3 className="font-bold text-amber-950">הגדרות נגישות</h3>
             <div className="flex items-center gap-2">
               <button onClick={reset} className="text-xs font-bold text-amber-700 hover:underline">איפוס</button>

@@ -17,6 +17,31 @@ export const Menu: React.FC = () => {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [savingReview, setSavingReview] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) { setLocationError('הדפדפן אינו תומך באיתור מיקום.'); return; }
+    setLocating(true);
+    setLocationError(null);
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const { latitude, longitude } = pos.coords;
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&accept-language=he`);
+        const data = await res.json();
+        const place = data?.address?.city || data?.address?.town || data?.address?.village || data?.address?.county;
+        if (place) setArea(place);
+        else setLocationError('לא הצלחנו לזהות את שם האיזור. אפשר להקליד אותו ידנית.');
+      } catch {
+        setLocationError('איתור המיקום נכשל. אפשר להקליד את האיזור ידנית.');
+      } finally {
+        setLocating(false);
+      }
+    }, () => {
+      setLocationError('לא ניתנה הרשאה לאיתור מיקום. אפשר להקליד את האיזור ידנית.');
+      setLocating(false);
+    });
+  };
 
   const openReview = (p: Product) => {
     const mine = p.reviews?.find(r => r.user_id === session?.user.id);
@@ -85,10 +110,17 @@ export const Menu: React.FC = () => {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש לפי שם מוצר, אופה, קונדיטוריה..."
             className="w-full border border-amber-200 rounded-full pr-11 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
         </div>
-        <div className="relative">
-          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-300">📍</span>
-          <input value={area} onChange={e => setArea(e.target.value)} placeholder="האיזור שלך (לדוגמה: נתיבות) — להצגת הקרובים אליך קודם"
-            className="w-full border border-amber-200 rounded-full pr-11 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+        <div>
+          <div className="relative">
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-300">📍</span>
+            <input value={area} onChange={e => setArea(e.target.value)} placeholder="האיזור שלך (לדוגמה: נתיבות) — להצגת הקרובים אליך קודם"
+              className="w-full border border-amber-200 rounded-full pr-11 pl-12 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+            <button type="button" onClick={detectLocation} disabled={locating} title="איתור המיקום שלי אוטומטית" aria-label="איתור מיקום אוטומטי"
+              className="absolute left-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-amber-100 hover:bg-amber-200 disabled:opacity-60 text-amber-800 flex items-center justify-center text-sm transition-colors">
+              {locating ? '…' : '🎯'}
+            </button>
+          </div>
+          {locationError && <p className="text-xs text-red-600 mt-1.5 px-2">{locationError}</p>}
         </div>
       </div>
 
