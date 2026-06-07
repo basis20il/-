@@ -117,6 +117,7 @@ export const Navbar: React.FC = () => {
               <Link to="/account" className="text-sm font-medium text-stone-600 hover:text-amber-800 px-3 py-2 transition-colors">
                 {profile?.full_name || 'החשבון שלי'}
               </Link>
+              <Link to="/vendor-dashboard" className="text-sm font-medium text-stone-600 hover:text-amber-800 px-3 py-2 transition-colors">איזור קונדיטוריות</Link>
               {profile?.is_admin && (
                 <Link to="/admin" className="text-sm font-bold text-white bg-amber-900 hover:bg-amber-800 px-4 py-2 rounded-full transition-colors duration-200">ניהול</Link>
               )}
@@ -144,6 +145,7 @@ export const Navbar: React.FC = () => {
           {session ? (
             <>
               <Link to="/account" onClick={() => setOpen(false)} className="text-stone-700 font-medium py-1">{profile?.full_name || 'החשבון שלי'}</Link>
+              <Link to="/vendor-dashboard" onClick={() => setOpen(false)} className="text-stone-700 font-medium py-1">איזור קונדיטוריות</Link>
               {profile?.is_admin && <Link to="/admin" onClick={() => setOpen(false)} className="font-bold text-amber-900 py-1">ניהול</Link>}
               <button onClick={() => { setOpen(false); handleSignOut(); }} className="text-right text-red-700 font-medium py-1">התנתקות</button>
             </>

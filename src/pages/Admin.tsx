@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase, Product, Order, productImage, SiteSettings, siteLogo, Profile, tierLabels } from '../lib/supabase';
+import { supabase, Product, Order, productImage, SiteSettings, siteLogo, Profile, tierLabels, Vendor, vendorStatusLabels } from '../lib/supabase';
 import { PromotionsAdmin } from '../components/PromotionsAdmin';
 
 const emptyForm = { id: '', name: '', sku: '', description: '', price: '', wholesale_price: '', category: '', image_url: '', image_base64: '' };
@@ -26,7 +26,9 @@ const paymentLabels: Record<string, string> = {
 };
 
 export const Admin: React.FC = () => {
-  const [tab, setTab] = useState<'products' | 'promotions' | 'orders' | 'settings' | 'customers'>('products');
+  const [tab, setTab] = useState<'products' | 'promotions' | 'orders' | 'settings' | 'customers' | 'vendors'>('products');
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [vendorStats, setVendorStats] = useState<Record<string, { order_count: number; total_revenue: number; commission_rate: number; commission_amount: number }>>({});
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Profile[]>([]);
@@ -54,8 +56,24 @@ export const Admin: React.FC = () => {
     const { data } = await supabase.from('profiles').select('*').order('full_name');
     setCustomers((data as Profile[]) || []);
   };
+  const loadVendors = async () => {
+    const { data } = await supabase.from('vendors').select('*').order('created_at', { ascending: false });
+    const list = (data as Vendor[]) || [];
+    setVendors(list);
+    const month = new Date().toISOString().slice(0, 10);
+    const stats: typeof vendorStats = {};
+    await Promise.all(list.filter(v => v.status === 'approved').map(async v => {
+      const { data: stat } = await supabase.rpc('get_vendor_commission', { p_vendor_id: v.id, p_month: month });
+      if (stat?.[0]) stats[v.id] = stat[0];
+    }));
+    setVendorStats(stats);
+  };
+  const updateVendorStatus = async (vendor: Vendor, status: Vendor['status']) => {
+    await supabase.from('vendors').update({ status }).eq('id', vendor.id);
+    setVendors(prev => prev.map(v => v.id === vendor.id ? { ...v, status } : v));
+  };
 
-  useEffect(() => { loadProducts(); loadOrders(); loadSettings(); loadCustomers(); }, []);
+  useEffect(() => { loadProducts(); loadOrders(); loadSettings(); loadCustomers(); loadVendors(); }, []);
 
   const updateCustomerTier = async (c: Profile, customer_tier: Profile['customer_tier']) => {
     await supabase.from('profiles').update({ customer_tier }).eq('id', c.id);
@@ -178,10 +196,42 @@ export const Admin: React.FC = () => {
         <button onClick={() => setTab('promotions')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'promotions' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>מבצעים ופרסומים</button>
         <button onClick={() => setTab('orders')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'orders' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>הזמנות ({orders.length})</button>
         <button onClick={() => setTab('customers')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'customers' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>לקוחות</button>
+        <button onClick={() => setTab('vendors')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'vendors' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>קונדיטוריות שותפות ({vendors.length})</button>
         <button onClick={() => setTab('settings')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'settings' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>הגדרות אתר</button>
       </div>
 
-      {tab === 'customers' ? (
+      {tab === 'vendors' ? (
+        <div className="space-y-4 animate-fade-in-up">
+          {vendors.map(v => {
+            const stat = vendorStats[v.id];
+            return (
+              <div key={v.id} className="bg-white rounded-2xl border border-amber-100 shadow-sm p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+                  <div>
+                    <p className="font-bold text-amber-950">{v.name} <span className="text-stone-300 font-normal">/{v.slug}</span></p>
+                    <p className="text-xs text-stone-400">{v.area || '—'} · {v.kosher_info || 'ללא פרטי כשרות'} · נרשם {new Date(v.created_at).toLocaleDateString('he-IL')}</p>
+                  </div>
+                  <select value={v.status} onChange={e => updateVendorStatus(v, e.target.value as Vendor['status'])}
+                    className="text-sm font-bold border border-amber-200 rounded-full px-4 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-amber-50 text-amber-900">
+                    {Object.entries(vendorStatusLabels).map(([val, label]) => <option key={val} value={val}>{label}</option>)}
+                  </select>
+                </div>
+                {v.description && <p className="text-sm text-stone-500 mb-2">{v.description}</p>}
+                {v.status === 'approved' && stat && (
+                  <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm bg-amber-50 rounded-xl px-4 py-2.5 mt-2">
+                    <span>הזמנות החודש: <strong className="text-amber-950">{stat.order_count}</strong></span>
+                    <span>מחזור: <strong className="text-amber-950">₪{stat.total_revenue.toFixed(2)}</strong></span>
+                    <span>אחוז עמלה: <strong className="text-amber-800">{(stat.commission_rate * 100).toFixed(0)}%</strong></span>
+                    <span>עמלה לגבייה: <strong className="text-amber-800">₪{stat.commission_amount.toFixed(2)}</strong></span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {vendors.length === 0 && <p className="text-stone-400 text-center py-10">אין עדיין בקשות הצטרפות מקונדיטוריות.</p>}
+          <p className="text-xs text-stone-400">העמלה היא 10% מכל הזמנה, ויורדת ל-5% החל מההזמנה ה-101 של אותה קונדיטוריה באותו חודש.</p>
+        </div>
+      ) : tab === 'customers' ? (
         <div className="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-x-auto animate-fade-in-up">
           <table className="w-full text-sm">
             <thead>
