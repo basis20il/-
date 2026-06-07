@@ -37,6 +37,8 @@ export interface Product {
   category: string | null;
   is_active: boolean;
   wholesale_price: number | null;
+  vendor_id: string | null;
+  vendor?: Vendor | null;
   created_at: string;
 }
 
@@ -67,6 +69,8 @@ export interface Order {
   pickup_date: string | null;
   invoice_number: string | null;
   payment_method: string | null;
+  vendor_id: string | null;
+  vendor?: Vendor | null;
   created_at: string;
   order_items?: OrderItem[];
 }
@@ -109,3 +113,18 @@ export interface Notification {
   is_read: boolean;
   created_at: string;
 }
+
+export interface Vendor {
+  id: string;
+  owner_id: string | null;
+  name: string;
+  slug: string;
+  description: string | null;
+  kosher_info: string | null;
+  supply_method: string | null;
+  area: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+}
+
+export const vendorStatusLabels: Record<string, string> = { pending: 'ממתינה לאישור', approved: 'מאושרת', rejected: 'נדחתה' };

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase, Product, productImage, effectivePrice } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -12,7 +13,7 @@ export const Menu: React.FC = () => {
   const [added, setAdded] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.from('products').select('*').eq('is_active', true).order('created_at', { ascending: false })
+    supabase.from('products').select('*, vendor:vendors(*)').eq('is_active', true).order('created_at', { ascending: false })
       .then(({ data }) => { setProducts((data as Product[]) || []); setLoading(false); });
   }, []);
 
@@ -63,7 +64,15 @@ export const Menu: React.FC = () => {
                   <h3 className="font-bold text-amber-950">{p.name}</h3>
                   <span className="font-extrabold text-amber-800 whitespace-nowrap">₪{effectivePrice(p, profile).toFixed(2)}</span>
                 </div>
-                {p.category && <span className="text-xs text-amber-600 mt-1">{p.category}</span>}
+                <div className="flex items-center gap-2 flex-wrap mt-1">
+                  {p.category && <span className="text-xs text-amber-600">{p.category}</span>}
+                  {p.vendor && p.vendor.status === 'approved' && (
+                    <Link to={`/vendor/${p.vendor.slug}`} onClick={e => e.stopPropagation()}
+                      className="text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 rounded-full px-2.5 py-0.5 hover:bg-amber-100 transition-colors">
+                      🏪 {p.vendor.name}
+                    </Link>
+                  )}
+                </div>
                 <p className="text-sm text-stone-400 mt-2 leading-relaxed flex-1">{p.description}</p>
                 <button onClick={() => handleAdd(p)}
                   className={`mt-4 w-full font-bold py-2.5 rounded-full transition-all duration-300 ${added === p.id ? 'bg-green-600 text-white' : 'bg-amber-800 hover:bg-amber-900 text-white hover:-translate-y-0.5'}`}>

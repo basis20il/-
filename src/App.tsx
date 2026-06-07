@@ -16,6 +16,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { CookieConsent } from './components/CookieConsent';
 import { AccessibilityWidget } from './components/AccessibilityWidget';
 import { Accessibility } from './pages/Accessibility';
+import { VendorPage } from './pages/VendorPage';
+import { VendorDashboard } from './pages/VendorDashboard';
 
 const App: React.FC = () => (
   <div className="min-h-screen flex flex-col bg-white text-stone-800">
@@ -33,6 +35,8 @@ const App: React.FC = () => (
         <Route path="/data-deletion" element={<DataDeletion />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/accessibility" element={<Accessibility />} />
+        <Route path="/vendor/:slug" element={<VendorPage />} />
+        <Route path="/vendor-dashboard" element={<ProtectedRoute><VendorDashboard /></ProtectedRoute>} />
       </Routes>
     </main>
     <Footer />

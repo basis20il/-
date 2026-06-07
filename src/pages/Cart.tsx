@@ -20,29 +20,42 @@ export const Cart: React.FC = () => {
     setPlacing(true);
     setError(null);
     try {
-      const invoiceNumber = `INV-${Date.now().toString().slice(-8)}`;
-      const { data: order, error: orderErr } = await supabase.from('orders').insert({
-        user_id: session.user.id,
-        customer_name: profile?.full_name || session.user.email,
-        customer_phone: profile?.phone,
-        total,
-        notes: notes || null,
-        pickup_date: pickupDate || null,
-        invoice_number: invoiceNumber,
-        payment_method: paymentMethod,
-        status: 'pending',
-      }).select().single();
-      if (orderErr) throw orderErr;
+      const groups = new Map<string | null, typeof lines>();
+      for (const l of lines) {
+        const key = l.product.vendor_id || null;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(l);
+      }
 
-      const items = lines.map(l => ({
-        order_id: order.id,
-        product_id: l.product.id,
-        product_name: l.product.name,
-        unit_price: effectivePrice(l.product, profile),
-        quantity: l.quantity,
-      }));
-      const { error: itemsErr } = await supabase.from('order_items').insert(items);
-      if (itemsErr) throw itemsErr;
+      let i = 0;
+      for (const [vendorId, groupLines] of groups) {
+        const groupTotal = groupLines.reduce((sum, l) => sum + effectivePrice(l.product, profile) * l.quantity, 0);
+        const invoiceNumber = `INV-${Date.now().toString().slice(-8)}${i ? `-${i}` : ''}`;
+        i++;
+        const { data: order, error: orderErr } = await supabase.from('orders').insert({
+          user_id: session.user.id,
+          customer_name: profile?.full_name || session.user.email,
+          customer_phone: profile?.phone,
+          total: groupTotal,
+          notes: notes || null,
+          pickup_date: pickupDate || null,
+          invoice_number: invoiceNumber,
+          payment_method: paymentMethod,
+          vendor_id: vendorId,
+          status: 'pending',
+        }).select().single();
+        if (orderErr) throw orderErr;
+
+        const items = groupLines.map(l => ({
+          order_id: order.id,
+          product_id: l.product.id,
+          product_name: l.product.name,
+          unit_price: effectivePrice(l.product, profile),
+          quantity: l.quantity,
+        }));
+        const { error: itemsErr } = await supabase.from('order_items').insert(items);
+        if (itemsErr) throw itemsErr;
+      }
 
       clear();
       setDone(true);
