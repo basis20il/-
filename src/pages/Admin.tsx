@@ -166,7 +166,7 @@ export const Admin: React.FC = () => {
 
   const ledgerBalance = ledgerEntries.reduce((sum, e) => sum + e.amount, 0);
 
-  const SIZE_THRESHOLD = 200_000;
+  const SIZE_THRESHOLD = 60_000;
 
   const optimizeImages = async () => {
     setOptimizing(true);
@@ -194,7 +194,7 @@ export const Admin: React.FC = () => {
         }
       }
       if (settings?.logo_base64 && settings.logo_base64.length > SIZE_THRESHOLD) {
-        const compressed = await compressDataUrl(settings.logo_base64, 600, 0.8);
+        const compressed = await compressDataUrl(settings.logo_base64, 400, 0.75);
         if (compressed.length < settings.logo_base64.length) {
           await supabase.from('site_settings').update({ logo_base64: compressed }).eq('id', 1);
           count++;
@@ -212,7 +212,7 @@ export const Admin: React.FC = () => {
 
   const handleLogoFile = async (file: File) => {
     setSavingLogo(true);
-    const compressed = await compressImageFile(file, 600, 0.8);
+    const compressed = await compressImageFile(file, 400, 0.75);
     await supabase.from('site_settings').upsert({ id: 1, logo_base64: compressed, logo_url: null });
     await loadSettings();
     setSavingLogo(false);
