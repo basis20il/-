@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { supabase, Product, Order, productImage, SiteSettings, siteLogo, Profile, tierLabels, Vendor, vendorStatusLabels, CategoryRequest, AccountEntry, Coupon } from '../lib/supabase';
+import { supabase, Product, Order, productImage, SiteSettings, siteLogo, siteFavicon, Profile, tierLabels, Vendor, vendorStatusLabels, CategoryRequest, AccountEntry, Coupon, Category, categoryImage } from '../lib/supabase';
 import { PromotionsAdmin } from '../components/PromotionsAdmin';
 import { compressImageFile, compressDataUrl } from '../lib/image';
+import { useSettings } from '../context/SettingsContext';
 
 const emptyForm = { id: '', name: '', sku: '', description: '', price: '', wholesale_price: '', category: '', image_url: '', image_base64: '' };
 
@@ -26,8 +27,11 @@ const paymentLabels: Record<string, string> = {
   card: '💳 כרטיס אשראי', apple_pay: ' Apple Pay', google_pay: 'Google Pay', cash: '💵 מזומן',
 };
 
+const emptyCategoryForm = { id: '', name: '', icon: '', image_url: '', image_base64: '', sort_order: '0', is_featured: true };
+
 export const Admin: React.FC = () => {
-  const [tab, setTab] = useState<'products' | 'promotions' | 'orders' | 'settings' | 'customers' | 'vendors' | 'coupons'>('products');
+  const { reload: reloadSettings } = useSettings();
+  const [tab, setTab] = useState<'products' | 'promotions' | 'orders' | 'settings' | 'content' | 'categories' | 'customers' | 'vendors' | 'coupons'>('products');
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [couponCode, setCouponCode] = useState('');
   const [couponPercent, setCouponPercent] = useState('10');
@@ -54,6 +58,18 @@ export const Admin: React.FC = () => {
   const [ledgerAmount, setLedgerAmount] = useState('');
   const [ledgerNote, setLedgerNote] = useState('');
   const [ledgerSaving, setLedgerSaving] = useState(false);
+  const [content, setContent] = useState({
+    hero_badge: '', hero_title: '', hero_subtitle: '', hero_text: '', about_text: '',
+    announce_enabled: false, announce_emoji: '', announce_title: '', announce_body: '', announce_link: '',
+    is_open: true, closed_message: '',
+  });
+  const [contentSaving, setContentSaving] = useState(false);
+  const [contentMsg, setContentMsg] = useState<string | null>(null);
+  const [savingFavicon, setSavingFavicon] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [catForm, setCatForm] = useState(emptyCategoryForm);
+  const [catEditing, setCatEditing] = useState(false);
+  const [catSaving, setCatSaving] = useState(false);
 
   const loadProducts = async () => {
     const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
@@ -65,7 +81,19 @@ export const Admin: React.FC = () => {
   };
   const loadSettings = async () => {
     const { data } = await supabase.from('site_settings').select('*').eq('id', 1).maybeSingle();
-    setSettings((data as SiteSettings) || null);
+    const s = (data as SiteSettings) || null;
+    setSettings(s);
+    if (s) setContent({
+      hero_badge: s.hero_badge || '', hero_title: s.hero_title || '', hero_subtitle: s.hero_subtitle || '',
+      hero_text: s.hero_text || '', about_text: s.about_text || '',
+      announce_enabled: !!s.announce_enabled, announce_emoji: s.announce_emoji || '', announce_title: s.announce_title || '',
+      announce_body: s.announce_body || '', announce_link: s.announce_link || '',
+      is_open: s.is_open ?? true, closed_message: s.closed_message || '',
+    });
+  };
+  const loadCategories = async () => {
+    const { data } = await supabase.from('categories').select('*').order('sort_order', { ascending: true });
+    setCategories((data as Category[]) || []);
   };
   const loadCustomers = async () => {
     const { data } = await supabase.from('profiles').select('*').order('full_name');
@@ -125,7 +153,71 @@ export const Admin: React.FC = () => {
     setCategoryRequests(prev => prev.map(r => r.id === req.id ? { ...r, status } : r));
   };
 
-  useEffect(() => { loadProducts(); loadOrders(); loadSettings(); loadCustomers(); loadVendors(); loadCategoryRequests(); loadCoupons(); }, []);
+  useEffect(() => { loadProducts(); loadOrders(); loadSettings(); loadCustomers(); loadVendors(); loadCategoryRequests(); loadCoupons(); loadCategories(); }, []);
+
+  const saveContent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContentSaving(true);
+    setContentMsg(null);
+    const { error } = await supabase.from('site_settings').upsert({
+      id: 1,
+      hero_badge: content.hero_badge || null, hero_title: content.hero_title || null, hero_subtitle: content.hero_subtitle || null,
+      hero_text: content.hero_text || null, about_text: content.about_text || null,
+      announce_enabled: content.announce_enabled, announce_emoji: content.announce_emoji || null,
+      announce_title: content.announce_title || null, announce_body: content.announce_body || null, announce_link: content.announce_link || null,
+      is_open: content.is_open, closed_message: content.closed_message || null,
+    });
+    setContentMsg(error ? `שגיאה: ${error.message}` : 'השינויים נשמרו ופורסמו לאתר ✓');
+    await loadSettings();
+    await reloadSettings();
+    setContentSaving(false);
+  };
+
+  const handleFaviconFile = async (file: File) => {
+    setSavingFavicon(true);
+    const compressed = await compressImageFile(file, 128, 0.8);
+    await supabase.from('site_settings').upsert({ id: 1, favicon_base64: compressed, favicon_url: null });
+    await loadSettings();
+    await reloadSettings();
+    setSavingFavicon(false);
+  };
+
+  const handleCatImageFile = async (file: File) => {
+    const compressed = await compressImageFile(file, 600, 0.75);
+    setCatForm(f => ({ ...f, image_base64: compressed, image_url: '' }));
+  };
+  const submitCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCatSaving(true);
+    const payload = {
+      name: catForm.name.trim(),
+      icon: catForm.icon || null,
+      image_url: catForm.image_url || null,
+      image_base64: catForm.image_base64 || null,
+      sort_order: parseInt(catForm.sort_order) || 0,
+      is_featured: catForm.is_featured,
+    };
+    if (catEditing && catForm.id) await supabase.from('categories').update(payload).eq('id', catForm.id);
+    else await supabase.from('categories').upsert(payload, { onConflict: 'name' });
+    setCatForm(emptyCategoryForm);
+    setCatEditing(false);
+    await loadCategories();
+    setCatSaving(false);
+  };
+  const editCategory = (c: Category) => {
+    setCatForm({ id: c.id, name: c.name, icon: c.icon || '', image_url: c.image_url || '', image_base64: c.image_base64 || '', sort_order: String(c.sort_order), is_featured: c.is_featured });
+    setCatEditing(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const deleteCategory = async (c: Category) => {
+    if (!confirm(`למחוק את הקטגוריה "${c.name}"? (לא ימחק מוצרים)`)) return;
+    await supabase.from('categories').delete().eq('id', c.id);
+    await loadCategories();
+  };
+  const toggleCategoryFeatured = async (c: Category) => {
+    await supabase.from('categories').update({ is_featured: !c.is_featured }).eq('id', c.id);
+    await loadCategories();
+  };
 
   const updateCustomerTier = async (c: Profile, customer_tier: Profile['customer_tier']) => {
     await supabase.from('profiles').update({ customer_tier }).eq('id', c.id);
@@ -314,13 +406,15 @@ export const Admin: React.FC = () => {
       <h1 className="font-extrabold text-4xl text-amber-950 mb-2 animate-fade-in-up">ניהול הקונדיטוריה</h1>
       <p className="text-stone-400 mb-8">ניהול מוצרים, תמונות והזמנות</p>
 
-      <div className="flex bg-amber-50 rounded-full p-1 w-fit mb-10">
+      <div className="flex flex-wrap gap-1 bg-amber-50 rounded-3xl p-1.5 w-fit max-w-full mb-10">
         <button onClick={() => setTab('products')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'products' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>מוצרים</button>
         <button onClick={() => setTab('promotions')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'promotions' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>מבצעים ופרסומים</button>
         <button onClick={() => setTab('orders')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'orders' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>הזמנות ({orders.length})</button>
         <button onClick={() => setTab('customers')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'customers' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>לקוחות</button>
         <button onClick={() => setTab('vendors')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'vendors' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>קונדיטוריות שותפות ({vendors.length})</button>
         <button onClick={() => setTab('coupons')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'coupons' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>קופונים</button>
+        <button onClick={() => setTab('categories')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'categories' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>קטגוריות</button>
+        <button onClick={() => setTab('content')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'content' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>תוכן ועיצוב</button>
         <button onClick={() => setTab('settings')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'settings' ? 'bg-white shadow text-amber-900' : 'text-amber-700/60'}`}>הגדרות אתר</button>
       </div>
 
@@ -413,6 +507,157 @@ export const Admin: React.FC = () => {
           </table>
           <p className="px-5 py-4 text-xs text-stone-400">סוג "סיטונאי" משתמש במחיר הסיטונאי שהוגדר למוצר (אם קיים), אחרת מופעלת ההנחה האוטומטית. סוג "VIP" וגם "רגיל" משתמשים בהנחה האוטומטית בלבד.</p>
         </div>
+      ) : tab === 'content' ? (
+        <form onSubmit={saveContent} className="max-w-2xl space-y-6 animate-fade-in-up">
+          {contentMsg && <p className="bg-amber-50 text-amber-800 text-sm rounded-xl px-4 py-2.5">{contentMsg}</p>}
+
+          <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 space-y-4">
+            <h2 className="font-bold text-lg text-amber-950">טקסטים בעמוד הבית</h2>
+            <div>
+              <label className="block text-sm font-bold text-amber-950 mb-1.5">תגית עליונה (Badge)</label>
+              <input value={content.hero_badge} onChange={e => setContent({ ...content, hero_badge: e.target.value })}
+                placeholder="קונדיטוריה משפחתית בנתיבות מאז ומתמיד"
+                className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-bold text-amber-950 mb-1.5">כותרת ראשית (שורה 1)</label>
+                <input value={content.hero_title} onChange={e => setContent({ ...content, hero_title: e.target.value })}
+                  placeholder="מגדנות" className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-amber-950 mb-1.5">כותרת מודגשת (שורה 2)</label>
+                <input value={content.hero_subtitle} onChange={e => setContent({ ...content, hero_subtitle: e.target.value })}
+                  placeholder="בטעם של עוד" className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-amber-950 mb-1.5">טקסט תיאור ראשי</label>
+              <textarea rows={3} value={content.hero_text} onChange={e => setContent({ ...content, hero_text: e.target.value })}
+                className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-amber-950 mb-1.5">טקסט "מה השירות שלנו"</label>
+              <textarea rows={4} value={content.about_text} onChange={e => setContent({ ...content, about_text: e.target.value })}
+                className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-lg text-amber-950">חלון קופץ (הודעה ללקוחות)</h2>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={content.announce_enabled} onChange={e => setContent({ ...content, announce_enabled: e.target.checked })} className="w-5 h-5 accent-amber-700" />
+                <span className="text-sm font-bold text-amber-900">{content.announce_enabled ? 'מופעל' : 'כבוי'}</span>
+              </label>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              <div>
+                <label className="block text-sm font-bold text-amber-950 mb-1.5">אימוג'י</label>
+                <input value={content.announce_emoji} onChange={e => setContent({ ...content, announce_emoji: e.target.value })}
+                  placeholder="📣" className="w-full border border-amber-200 rounded-xl px-4 py-2 text-center focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              </div>
+              <div className="col-span-3">
+                <label className="block text-sm font-bold text-amber-950 mb-1.5">כותרת ההודעה</label>
+                <input value={content.announce_title} onChange={e => setContent({ ...content, announce_title: e.target.value })}
+                  className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-amber-950 mb-1.5">תוכן ההודעה</label>
+              <textarea rows={3} value={content.announce_body} onChange={e => setContent({ ...content, announce_body: e.target.value })}
+                className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-amber-950 mb-1.5">קישור לכפתור <span className="font-normal text-stone-400">(לא חובה)</span></label>
+              <input value={content.announce_link} onChange={e => setContent({ ...content, announce_link: e.target.value })} dir="ltr"
+                placeholder="https://..." className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+            </div>
+            <p className="text-xs text-stone-400">החלון יוצג פעם אחת לכל מבקר. שינוי הכותרת או התוכן יציג אותו מחדש.</p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-lg text-amber-950">סטטוס האתר</h2>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={content.is_open} onChange={e => setContent({ ...content, is_open: e.target.checked })} className="w-5 h-5 accent-amber-700" />
+                <span className={`text-sm font-bold ${content.is_open ? 'text-green-700' : 'text-red-700'}`}>{content.is_open ? 'פתוח להזמנות' : 'סגור'}</span>
+              </label>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-amber-950 mb-1.5">הודעה כשהאתר סגור</label>
+              <input value={content.closed_message} onChange={e => setContent({ ...content, closed_message: e.target.value })}
+                placeholder="האתר סגור כעת לקבלת הזמנות. נחזור בקרוב!"
+                className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+            </div>
+            <p className="text-xs text-stone-400">כשהאתר סגור — מוצגת הודעה בראש כל עמוד, וביצוע הזמנות בעגלה נחסם.</p>
+          </div>
+
+          <button disabled={contentSaving} className="bg-amber-800 hover:bg-amber-900 disabled:opacity-60 text-white font-bold px-8 py-3 rounded-full transition-colors">
+            {contentSaving ? 'שומר...' : 'שמירה ופרסום'}
+          </button>
+        </form>
+      ) : tab === 'categories' ? (
+        <div className="grid lg:grid-cols-3 gap-8">
+          <form onSubmit={submitCategory} className="lg:col-span-1 bg-white rounded-2xl border border-amber-100 shadow-sm p-6 space-y-4 h-fit animate-fade-in-up">
+            <h2 className="font-bold text-lg text-amber-950">{catEditing ? 'עריכת קטגוריה' : 'קטגוריה חדשה'}</h2>
+            <div>
+              <label className="block text-sm font-bold text-amber-950 mb-1.5">שם הקטגוריה</label>
+              <input required value={catForm.name} onChange={e => setCatForm({ ...catForm, name: e.target.value })}
+                placeholder="עוגות, חיתוכי פירות..." className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-bold text-amber-950 mb-1.5">אימוג'י</label>
+                <input value={catForm.icon} onChange={e => setCatForm({ ...catForm, icon: e.target.value })}
+                  placeholder="🎂" className="w-full border border-amber-200 rounded-xl px-4 py-2 text-center focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-amber-950 mb-1.5">סדר הצגה</label>
+                <input type="number" value={catForm.sort_order} onChange={e => setCatForm({ ...catForm, sort_order: e.target.value })}
+                  className="w-full border border-amber-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-amber-950 mb-1.5">תמונת רקע (לא חובה)</label>
+              <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && handleCatImageFile(e.target.files[0])}
+                className="w-full text-sm text-stone-500 file:ml-3 file:px-4 file:py-2 file:rounded-full file:border-0 file:bg-amber-100 file:text-amber-900 file:font-bold" />
+            </div>
+            {(catForm.image_url || catForm.image_base64) && (
+              <img src={catForm.image_url || catForm.image_base64} alt="תצוגה מקדימה" className="w-full aspect-square object-cover rounded-xl border border-amber-100" />
+            )}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={catForm.is_featured} onChange={e => setCatForm({ ...catForm, is_featured: e.target.checked })} className="w-5 h-5 accent-amber-700" />
+              <span className="text-sm font-bold text-amber-900">הצגה בעמוד הבית</span>
+            </label>
+            <div className="flex gap-3">
+              <button disabled={catSaving} className="flex-1 bg-amber-800 hover:bg-amber-900 disabled:opacity-60 text-white font-bold py-2.5 rounded-xl transition-colors">
+                {catSaving ? 'שומר...' : catEditing ? 'עדכון' : 'הוספה'}
+              </button>
+              {catEditing && <button type="button" onClick={() => { setCatForm(emptyCategoryForm); setCatEditing(false); }} className="text-stone-500 font-bold px-4">ביטול</button>}
+            </div>
+            <p className="text-xs text-stone-400">הקטגוריות מקשרות אוטומטית לתפריט המסונן. מוצרים משויכים לקטגוריה לפי שם הקטגוריה בכרטיס המוצר.</p>
+          </form>
+
+          <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {categories.map(c => (
+              <div key={c.id} className="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-hidden animate-fade-in-up">
+                <div className="aspect-square bg-gradient-to-br from-amber-100 to-rose-50 flex items-center justify-center relative">
+                  {categoryImage(c) ? <img src={categoryImage(c)} alt={c.name} className="w-full h-full object-cover" /> : <span className="text-5xl">{c.icon || '🧁'}</span>}
+                </div>
+                <div className="p-3">
+                  <p className="font-bold text-amber-950 text-sm truncate">{c.icon} {c.name}</p>
+                  <div className="flex items-center gap-2 mt-2 text-xs">
+                    <button onClick={() => toggleCategoryFeatured(c)} className={`font-bold px-2 py-0.5 rounded-full ${c.is_featured ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>{c.is_featured ? 'בעמוד הבית' : 'מוסתר'}</button>
+                    <button onClick={() => editCategory(c)} className="font-bold text-amber-700 hover:underline">עריכה</button>
+                    <button onClick={() => deleteCategory(c)} className="font-bold text-red-600 hover:underline">מחיקה</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {categories.length === 0 && <p className="col-span-full text-stone-400 text-center py-10">אין עדיין קטגוריות. הוסיפו את הראשונה!</p>}
+          </div>
+        </div>
       ) : tab === 'settings' ? (
         <>
         <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 max-w-md animate-fade-in-up">
@@ -427,6 +672,20 @@ export const Admin: React.FC = () => {
             </label>
           </div>
           <p className="text-xs text-stone-400">התמונה תוצג בעיגול בראש האתר. מומלץ תמונה ריבועית.</p>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 max-w-md animate-fade-in-up mt-6">
+          <h2 className="font-bold text-lg text-amber-950 mb-4">אייקון האתר (Favicon)</h2>
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-16 h-16 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center overflow-hidden">
+              {siteFavicon(settings) ? <img src={siteFavicon(settings)} alt="אייקון" className="w-full h-full object-cover" /> : <span className="text-3xl">🍰</span>}
+            </div>
+            <label className="cursor-pointer bg-amber-800 hover:bg-amber-900 text-white font-bold px-5 py-2.5 rounded-full text-sm transition-colors">
+              {savingFavicon ? 'שומר...' : 'העלאת אייקון'}
+              <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleFaviconFile(e.target.files[0])} />
+            </label>
+          </div>
+          <p className="text-xs text-stone-400">התמונה הקטנה שמופיעה בלשונית הדפדפן וליד כתובת האתר. מומלץ תמונה ריבועית פשוטה.</p>
         </div>
 
         <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 max-w-md animate-fade-in-up mt-6">

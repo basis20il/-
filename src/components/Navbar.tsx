@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { supabase, SiteSettings, siteLogo, Notification } from '../lib/supabase';
+import { useSettings } from '../context/SettingsContext';
+import { supabase, siteLogo, Notification } from '../lib/supabase';
 
 const links = [
   { to: '/', label: 'בית' },
@@ -14,8 +15,8 @@ const links = [
 export const Navbar: React.FC = () => {
   const { session, profile, signOut } = useAuth();
   const { count } = useCart();
+  const { settings } = useSettings();
   const [open, setOpen] = useState(false);
-  const [logo, setLogo] = useState<SiteSettings | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const navigate = useNavigate();
@@ -24,11 +25,6 @@ export const Navbar: React.FC = () => {
     await signOut();
     navigate('/');
   };
-
-  useEffect(() => {
-    supabase.from('site_settings').select('*').eq('id', 1).maybeSingle()
-      .then(({ data }) => setLogo((data as SiteSettings) || null));
-  }, []);
 
   const loadNotifications = async () => {
     if (!session) return;
@@ -53,8 +49,8 @@ export const Navbar: React.FC = () => {
     <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-amber-100 shadow-sm">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-20">
         <Link to="/" className="flex items-center gap-3 group">
-          {siteLogo(logo) ? (
-            <img src={siteLogo(logo)} alt="לוגו מגדנות בטעם של עוד" className="w-12 h-12 rounded-full object-cover shadow-md group-hover:scale-105 transition-transform duration-300" />
+          {siteLogo(settings) ? (
+            <img src={siteLogo(settings)} alt="לוגו מגדנות בטעם של עוד" className="w-12 h-12 rounded-full object-cover shadow-md group-hover:scale-105 transition-transform duration-300" />
           ) : (
             <span className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-700 to-amber-900 flex items-center justify-center text-white text-xl font-bold shadow-md group-hover:scale-105 transition-transform duration-300 font-extrabold">מ</span>
           )}

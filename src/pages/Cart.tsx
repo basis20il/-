@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import { supabase, effectivePrice, Coupon } from '../lib/supabase';
 
 export const Cart: React.FC = () => {
   const { lines, setQuantity, remove, clear, total } = useCart();
   const { session, profile } = useAuth();
+  const { settings } = useSettings();
+  const siteClosed = settings ? !settings.is_open : false;
   const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'apple_pay' | 'google_pay' | 'cash'>('card');
   const [notes, setNotes] = useState('');
@@ -53,6 +56,7 @@ export const Cart: React.FC = () => {
   };
 
   const placeOrder = async () => {
+    if (siteClosed) { setError(settings?.closed_message || 'האתר סגור כעת לקבלת הזמנות. נסו שוב מאוחר יותר.'); return; }
     if (!session) { navigate('/login', { state: { from: '/cart' } }); return; }
     setPlacing(true);
     setError(null);
@@ -220,10 +224,11 @@ export const Cart: React.FC = () => {
             <p className="text-[11px] leading-relaxed text-stone-400">
               מסירת הפרטים אינה חובה על פי דין, אך נדרשת לשם ביצוע ההזמנה ויצירת קשר עימכם לתיאום אספקה/איסוף; בעל השליטה במאגר המידע הוא מגדנות בטעם של עוד, נתיבות. המידע ישמש לניהול ההזמנה והשירות בלבד ולא יועבר לצדדים שלישיים מלבד ספקי שירות הנדרשים לתפעול האתר. עומדת לכם הזכות לעיין במידע ולבקש את תיקונו, בהתאם ל<Link to="/privacy-policy" className="underline hover:text-amber-700">מדיניות הפרטיות</Link>.
             </p>
+            {siteClosed && <p className="text-amber-800 bg-amber-50 rounded-xl px-4 py-2.5 text-sm font-medium">🕒 {settings?.closed_message || 'האתר סגור כעת לקבלת הזמנות. נחזור בקרוב!'}</p>}
             {error && <p className="text-red-600 text-sm">{error}</p>}
-            <button onClick={placeOrder} disabled={placing}
+            <button onClick={placeOrder} disabled={placing || siteClosed}
               className="w-full bg-amber-800 hover:bg-amber-900 disabled:opacity-60 text-white font-bold py-3 rounded-xl shadow transition-all duration-300 hover:-translate-y-0.5">
-              {placing ? 'שולח הזמנה...' : session ? 'שליחת הזמנה' : 'התחברות לשליחת הזמנה'}
+              {siteClosed ? 'האתר סגור כעת' : placing ? 'שולח הזמנה...' : session ? 'שליחת הזמנה' : 'התחברות לשליחת הזמנה'}
             </button>
           </div>
         </div>
