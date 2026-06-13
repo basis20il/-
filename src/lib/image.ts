@@ -1,6 +1,6 @@
-// Resizes and compresses an image file into a JPEG data URL, to keep stored
-// base64 images small (large uncompressed images bloat every product query).
-export const compressImageFile = (file: File, maxDim = 1000, quality = 0.75): Promise<string> => {
+// Resizes and compresses an image file into a WebP (or JPEG fallback) data URL, to keep
+// stored base64 images small (large uncompressed images bloat every product query).
+export const compressImageFile = (file: File, maxDim = 900, quality = 0.7): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(reader.error);
@@ -10,7 +10,7 @@ export const compressImageFile = (file: File, maxDim = 1000, quality = 0.75): Pr
 };
 
 // Re-compresses an existing data URL (e.g. a previously-stored uncompressed image).
-export const compressDataUrl = (dataUrl: string, maxDim = 1000, quality = 0.75): Promise<string> =>
+export const compressDataUrl = (dataUrl: string, maxDim = 900, quality = 0.7): Promise<string> =>
   resolveFromDataUrl(dataUrl, maxDim, quality);
 
 const resolveFromDataUrl = (dataUrl: string, maxDim: number, quality: number): Promise<string> => {
@@ -29,7 +29,8 @@ const resolveFromDataUrl = (dataUrl: string, maxDim: number, quality: number): P
       const ctx = canvas.getContext('2d');
       if (!ctx) { resolve(dataUrl); return; }
       ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
+      const webp = canvas.toDataURL('image/webp', quality);
+      resolve(webp.startsWith('data:image/webp') ? webp : canvas.toDataURL('image/jpeg', quality));
     };
     img.src = dataUrl;
   });
