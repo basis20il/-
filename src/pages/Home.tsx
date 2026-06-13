@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase, Product, productImage, effectivePrice } from '../lib/supabase';
+import { supabase, Product, productImage, effectivePrice, Category, categoryImage } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import { PromotionsBanner } from '../components/PromotionsBanner';
 import { useCart } from '../context/CartContext';
 
@@ -14,9 +15,11 @@ const features = [
 
 export const Home: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [added, setAdded] = useState<string | null>(null);
   const { add } = useCart();
   const { profile } = useAuth();
+  const { settings } = useSettings();
 
   const handleAdd = (p: Product) => {
     add(p);
@@ -27,7 +30,16 @@ export const Home: React.FC = () => {
   useEffect(() => {
     supabase.from('products').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(4)
       .then(({ data }) => setProducts((data as Product[]) || []));
+    supabase.from('categories').select('*').eq('is_featured', true).order('sort_order', { ascending: true })
+      .then(({ data }) => setCategories((data as Category[]) || []));
   }, []);
+
+  const heroBadge = settings?.hero_badge || 'קונדיטוריה משפחתית בנתיבות מאז ומתמיד';
+  const heroTitle = settings?.hero_title || 'מגדנות\nבטעם של עוד';
+  const heroSubtitle = settings?.hero_subtitle || 'בטעם של עוד';
+  const heroText = settings?.hero_text ||
+    'כל יצירה שיוצאת מהמטבח שלנו נאפית ביד, באהבה ובדייקנות — לאירועים המכובדים ביותר ולרגעים הקטנים שבכל יום. בואו לטעום את ההבדל.';
+  const [titleLine1, titleLine2] = heroTitle.includes('\n') ? heroTitle.split('\n') : [heroTitle, heroSubtitle];
 
   return (
     <div>
@@ -38,13 +50,12 @@ export const Home: React.FC = () => {
 
         <div className="relative max-w-7xl mx-auto px-6 pt-8 sm:pt-10 lg:pt-14 pb-16 sm:pb-20 lg:pb-28 grid lg:grid-cols-2 gap-12 items-center">
           <div className="animate-fade-in-up">
-            <span className="inline-block bg-amber-100 text-amber-900 text-xs font-bold tracking-wide px-4 py-2 rounded-full mb-6">קונדיטוריה משפחתית בנתיבות מאז ומתמיד</span>
+            <span className="inline-block bg-amber-100 text-amber-900 text-xs font-bold tracking-wide px-4 py-2 rounded-full mb-6">{heroBadge}</span>
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-amber-950 leading-[1.1] mb-6">
-              מגדנות<br/><span className="text-amber-700">בטעם של עוד</span>
+              {titleLine1}<br/><span className="text-amber-700">{titleLine2}</span>
             </h1>
-            <p className="text-lg text-stone-600 max-w-xl leading-relaxed mb-10">
-              כל יצירה שיוצאת מהמטבח שלנו נאפית ביד, באהבה ובדייקנות — לאירועים המכובדים ביותר ולרגעים הקטנים שבכל יום.
-              בואו לטעום את ההבדל.
+            <p className="text-lg text-stone-600 max-w-xl leading-relaxed mb-10 whitespace-pre-line">
+              {heroText}
             </p>
             <div className="flex flex-wrap gap-4">
               <Link to="/menu" className="bg-amber-800 hover:bg-amber-900 text-white font-bold px-8 py-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
@@ -70,6 +81,33 @@ export const Home: React.FC = () => {
 
       <PromotionsBanner />
 
+      {/* Smart category showcase */}
+      {categories.length > 0 && (
+        <section className="max-w-7xl mx-auto px-6 pt-16 pb-4">
+          <div className="text-center mb-10 animate-fade-in-up">
+            <span className="inline-block bg-amber-100 text-amber-900 text-xs font-bold tracking-wide px-4 py-2 rounded-full mb-3">הקטגוריות שלנו</span>
+            <h2 className="font-extrabold text-3xl sm:text-4xl text-amber-950">מה מתחשק לכם היום?</h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+            {categories.map((c, i) => (
+              <Link key={c.id} to={`/menu?category=${encodeURIComponent(c.name)}`}
+                className="group relative aspect-square rounded-3xl overflow-hidden shadow-sm border border-amber-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 animate-fade-in-up bg-gradient-to-br from-amber-100 via-amber-50 to-rose-50"
+                style={{ animationDelay: `${i * 70}ms` }}>
+                {categoryImage(c) && (
+                  <img src={categoryImage(c)} alt={c.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                )}
+                <div className={`absolute inset-0 flex flex-col items-center justify-center gap-2 text-center p-3 ${categoryImage(c) ? 'bg-gradient-to-t from-amber-950/70 via-amber-900/20 to-transparent' : ''}`}>
+                  {!categoryImage(c) && <span className="text-5xl drop-shadow-sm">{c.icon || '🧁'}</span>}
+                  <span className={`font-extrabold text-lg ${categoryImage(c) ? 'text-white drop-shadow mt-auto' : 'text-amber-950'}`}>
+                    {categoryImage(c) && c.icon ? `${c.icon} ` : ''}{c.name}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Features */}
       <section className="max-w-7xl mx-auto px-6 py-20">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -86,10 +124,9 @@ export const Home: React.FC = () => {
       {/* About the service (for users & verification) */}
       <section className="max-w-4xl mx-auto px-6 py-14 text-center animate-fade-in-up">
         <h2 className="font-extrabold text-2xl sm:text-3xl text-amber-950 mb-4">מה השירות שלנו</h2>
-        <p className="text-stone-600 leading-relaxed">
-          "מגדנות בטעם של עוד" היא פלטפורמה דיגיטלית להזמנת מאפים, עוגות וקייטרינג מקונדיטוריות שותפות באזור נתיבות והסביבה.
-          באתר ניתן לעיין בתפריט, להזמין ולשלם, לעקוב אחר סטטוס ההזמנות ולנהל את הפרופיל האישי וההיסטוריה שלכם.
-          התחברות עם חשבון Google משמשת ליצירת חשבון משתמש מאובטח, ומאפשרת לכם לשמור פרטי קשר, לעקוב אחר הזמנות קודמות ולנהל את התוכן וההגדרות שלכם במערכת.
+        <p className="text-stone-600 leading-relaxed whitespace-pre-line">
+          {settings?.about_text ||
+            '"מגדנות בטעם של עוד" היא פלטפורמה דיגיטלית להזמנת מאפים, עוגות וקייטרינג מקונדיטוריות שותפות באזור נתיבות והסביבה.\nבאתר ניתן לעיין בתפריט, להזמין ולשלם, לעקוב אחר סטטוס ההזמנות ולנהל את הפרופיל האישי וההיסטוריה שלכם.\nהתחברות עם חשבון Google משמשת ליצירת חשבון משתמש מאובטח, ומאפשרת לכם לשמור פרטי קשר, לעקוב אחר הזמנות קודמות ולנהל את התוכן וההגדרות שלכם במערכת.'}
         </p>
       </section>
 

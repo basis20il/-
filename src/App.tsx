@@ -18,9 +18,12 @@ import { AccessibilityWidget } from './components/AccessibilityWidget';
 import { Accessibility } from './pages/Accessibility';
 import { VendorPage } from './pages/VendorPage';
 import { VendorDashboard } from './pages/VendorDashboard';
+import { AnnouncementModal } from './components/AnnouncementModal';
+import { SiteStatusBanner } from './components/SiteStatusBanner';
 
 const App: React.FC = () => (
   <div className="min-h-screen flex flex-col bg-white text-stone-800">
+    <SiteStatusBanner />
     <Navbar />
     <main className="flex-1">
       <Routes>
@@ -42,6 +45,7 @@ const App: React.FC = () => (
     <Footer />
     <CookieConsent />
     <AccessibilityWidget />
+    <AnnouncementModal />
   </div>
 );
 

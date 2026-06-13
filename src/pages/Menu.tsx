@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { supabase, Product, productImage, effectivePrice, averageRating, locationMatchScore, haversineKm } from '../lib/supabase';
 
 const NEARBY_RADIUS_KM = 20;
@@ -18,9 +18,10 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 
 export const Menu: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState<string>('הכל');
+  const [category, setCategory] = useState<string>(searchParams.get('category') || 'הכל');
   const [search, setSearch] = useState('');
   const [area, setArea] = useState('');
   const { add } = useCart();
@@ -86,6 +87,8 @@ export const Menu: React.FC = () => {
   }, []);
 
   useEffect(() => { if (profile?.address) setArea(profile.address); }, [profile?.address]);
+
+  useEffect(() => { const c = searchParams.get('category'); if (c) setCategory(c); }, [searchParams]);
 
   const categories = useMemo(() => ['הכל', ...Array.from(new Set(products.map(p => p.category).filter(Boolean) as string[]))], [products]);
 

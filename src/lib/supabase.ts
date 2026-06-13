@@ -100,10 +100,28 @@ export interface SiteSettings {
   id: number;
   logo_url: string | null;
   logo_base64: string | null;
+  favicon_url: string | null;
+  favicon_base64: string | null;
+  hero_badge: string | null;
+  hero_title: string | null;
+  hero_subtitle: string | null;
+  hero_text: string | null;
+  about_text: string | null;
+  announce_enabled: boolean;
+  announce_emoji: string | null;
+  announce_title: string | null;
+  announce_body: string | null;
+  announce_link: string | null;
+  is_open: boolean;
+  closed_message: string | null;
 }
 
 export function siteLogo(s: SiteSettings | null): string {
   return (s?.logo_url || s?.logo_base64 || '');
+}
+
+export function siteFavicon(s: SiteSettings | null): string {
+  return (s?.favicon_url || s?.favicon_base64 || '');
 }
 
 export interface Notification {
@@ -153,7 +171,16 @@ export interface Coupon {
 export interface Category {
   id: string;
   name: string;
+  icon: string | null;
+  image_url: string | null;
+  image_base64: string | null;
+  sort_order: number;
+  is_featured: boolean;
   created_at: string;
+}
+
+export function categoryImage(c: Category): string {
+  return c.image_url || c.image_base64 || '';
 }
 
 export interface CategoryRequest {
