@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase, Product, Order, productImage, SiteSettings, siteLogo, Profile, tierLabels, Vendor, vendorStatusLabels, CategoryRequest, AccountEntry, Coupon } from '../lib/supabase';
 import { PromotionsAdmin } from '../components/PromotionsAdmin';
+import { compressImageFile, compressDataUrl } from '../lib/image';
 
 const emptyForm = { id: '', name: '', sku: '', description: '', price: '', wholesale_price: '', category: '', image_url: '', image_base64: '' };
 
@@ -33,6 +34,8 @@ export const Admin: React.FC = () => {
   const [couponExpires, setCouponExpires] = useState('');
   const [couponSaving, setCouponSaving] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
+  const [optimizing, setOptimizing] = useState(false);
+  const [optimizeMsg, setOptimizeMsg] = useState<string | null>(null);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [categoryRequests, setCategoryRequests] = useState<CategoryRequest[]>([]);
   const [vendorStats, setVendorStats] = useState<Record<string, { order_count: number; total_revenue: number; commission_rate: number; commission_amount: number }>>({});
@@ -163,23 +166,63 @@ export const Admin: React.FC = () => {
 
   const ledgerBalance = ledgerEntries.reduce((sum, e) => sum + e.amount, 0);
 
-  const handleLogoFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = async () => {
-      setSavingLogo(true);
-      await supabase.from('site_settings').upsert({ id: 1, logo_base64: reader.result as string, logo_url: null });
-      await loadSettings();
-      setSavingLogo(false);
-    };
-    reader.readAsDataURL(file);
+  const SIZE_THRESHOLD = 200_000;
+
+  const optimizeImages = async () => {
+    setOptimizing(true);
+    setOptimizeMsg(null);
+    let count = 0;
+    try {
+      const { data: prods } = await supabase.from('products').select('id, image_base64').not('image_base64', 'is', null);
+      for (const p of (prods as { id: string; image_base64: string | null }[]) || []) {
+        if (p.image_base64 && p.image_base64.length > SIZE_THRESHOLD) {
+          const compressed = await compressDataUrl(p.image_base64);
+          if (compressed.length < p.image_base64.length) {
+            await supabase.from('products').update({ image_base64: compressed }).eq('id', p.id);
+            count++;
+          }
+        }
+      }
+      const { data: promos } = await supabase.from('promotions').select('id, image_base64').not('image_base64', 'is', null);
+      for (const p of (promos as { id: string; image_base64: string | null }[]) || []) {
+        if (p.image_base64 && p.image_base64.length > SIZE_THRESHOLD) {
+          const compressed = await compressDataUrl(p.image_base64);
+          if (compressed.length < p.image_base64.length) {
+            await supabase.from('promotions').update({ image_base64: compressed }).eq('id', p.id);
+            count++;
+          }
+        }
+      }
+      if (settings?.logo_base64 && settings.logo_base64.length > SIZE_THRESHOLD) {
+        const compressed = await compressDataUrl(settings.logo_base64, 600, 0.8);
+        if (compressed.length < settings.logo_base64.length) {
+          await supabase.from('site_settings').update({ logo_base64: compressed }).eq('id', 1);
+          count++;
+          await loadSettings();
+        }
+      }
+      setOptimizeMsg(count > 0 ? `כווצו בהצלחה ${count} תמונות. הטעינה אמורה להיות מהירה יותר.` : 'כל התמונות כבר מאופטמות.');
+      loadProducts();
+    } catch (err: any) {
+      setOptimizeMsg(`שגיאה: ${err.message}`);
+    } finally {
+      setOptimizing(false);
+    }
+  };
+
+  const handleLogoFile = async (file: File) => {
+    setSavingLogo(true);
+    const compressed = await compressImageFile(file, 600, 0.8);
+    await supabase.from('site_settings').upsert({ id: 1, logo_base64: compressed, logo_url: null });
+    await loadSettings();
+    setSavingLogo(false);
   };
 
   const resetForm = () => { setForm(emptyForm); setEditing(false); };
 
-  const handleImageFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => setForm(f => ({ ...f, image_base64: reader.result as string, image_url: '' }));
-    reader.readAsDataURL(file);
+  const handleImageFile = async (file: File) => {
+    const compressed = await compressImageFile(file);
+    setForm(f => ({ ...f, image_base64: compressed, image_url: '' }));
   };
 
   const submitProduct = async (e: React.FormEvent) => {
@@ -371,6 +414,7 @@ export const Admin: React.FC = () => {
           <p className="px-5 py-4 text-xs text-stone-400">סוג "סיטונאי" משתמש במחיר הסיטונאי שהוגדר למוצר (אם קיים), אחרת מופעלת ההנחה האוטומטית. סוג "VIP" וגם "רגיל" משתמשים בהנחה האוטומטית בלבד.</p>
         </div>
       ) : tab === 'settings' ? (
+        <>
         <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 max-w-md animate-fade-in-up">
           <h2 className="font-bold text-lg text-amber-950 mb-4">לוגו האתר</h2>
           <div className="flex items-center gap-4 mb-4">
@@ -384,6 +428,17 @@ export const Admin: React.FC = () => {
           </div>
           <p className="text-xs text-stone-400">התמונה תוצג בעיגול בראש האתר. מומלץ תמונה ריבועית.</p>
         </div>
+
+        <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 max-w-md animate-fade-in-up mt-6">
+          <h2 className="font-bold text-lg text-amber-950 mb-2">אופטימיזציית תמונות</h2>
+          <p className="text-xs text-stone-400 mb-4">תמונות גדולות שהועלו בעבר עלולות להאט את טעינת האתר ללקוחות. לחיצה כאן תכווץ אוטומטית את כל התמונות הגדולות שנשמרו במערכת (מוצרים, מבצעים ולוגו) — לא תפגע באיכות התצוגה.</p>
+          <button onClick={optimizeImages} disabled={optimizing}
+            className="bg-amber-800 hover:bg-amber-900 disabled:opacity-60 text-white font-bold px-5 py-2.5 rounded-full text-sm transition-colors">
+            {optimizing ? 'מכווץ תמונות...' : 'כיווץ תמונות קיימות'}
+          </button>
+          {optimizeMsg && <p className="text-sm text-amber-800 mt-3">{optimizeMsg}</p>}
+        </div>
+        </>
       ) : tab === 'coupons' ? (
         <div className="grid lg:grid-cols-3 gap-8">
           <form onSubmit={submitCoupon} className="lg:col-span-1 bg-white rounded-2xl border border-amber-100 shadow-sm p-6 space-y-4 h-fit animate-fade-in-up">

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase, Promotion, promotionImage } from '../lib/supabase';
+import { compressImageFile } from '../lib/image';
 
 const emptyForm = { id: '', title: '', description: '', link_url: '', sort_order: '0', image_url: '', image_base64: '' };
 
@@ -19,10 +20,9 @@ export const PromotionsAdmin: React.FC = () => {
 
   const resetForm = () => { setForm(emptyForm); setEditing(false); };
 
-  const handleImageFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => setForm(f => ({ ...f, image_base64: reader.result as string, image_url: '' }));
-    reader.readAsDataURL(file);
+  const handleImageFile = async (file: File) => {
+    const compressed = await compressImageFile(file);
+    setForm(f => ({ ...f, image_base64: compressed, image_url: '' }));
   };
 
   const submit = async (e: React.FormEvent) => {

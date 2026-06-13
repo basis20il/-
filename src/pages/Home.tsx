@@ -83,6 +83,16 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
+      {/* About the service (for users & verification) */}
+      <section className="max-w-4xl mx-auto px-6 py-14 text-center animate-fade-in-up">
+        <h2 className="font-extrabold text-2xl sm:text-3xl text-amber-950 mb-4">מה השירות שלנו</h2>
+        <p className="text-stone-600 leading-relaxed">
+          "מגדנות בטעם של עוד" היא פלטפורמה דיגיטלית להזמנת מאפים, עוגות וקייטרינג מקונדיטוריות שותפות באזור נתיבות והסביבה.
+          באתר ניתן לעיין בתפריט, להזמין ולשלם, לעקוב אחר סטטוס ההזמנות ולנהל את הפרופיל האישי וההיסטוריה שלכם.
+          התחברות עם חשבון Google משמשת ליצירת חשבון משתמש מאובטח, ומאפשרת לכם לשמור פרטי קשר, לעקוב אחר הזמנות קודמות ולנהל את התוכן וההגדרות שלכם במערכת.
+        </p>
+      </section>
+
       {/* Featured products */}
       {products.length > 0 && (
         <section className="bg-amber-50/60 py-20">
