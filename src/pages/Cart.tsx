@@ -104,7 +104,7 @@ export const Cart: React.FC = () => {
       clear();
       setDone(true);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message?.includes('blocked') ? 'החשבון שלך חסום מביצוע הזמנות. לפרטים נוספים פנו אלינו.' : err.message);
     } finally {
       setPlacing(false);
     }

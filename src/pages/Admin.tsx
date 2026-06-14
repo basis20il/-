@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase, Product, Order, productImage, SiteSettings, siteLogo, siteFavicon, Profile, tierLabels, Vendor, vendorStatusLabels, CategoryRequest, AccountEntry, Coupon, Category, categoryImage } from '../lib/supabase';
+import { supabase, Product, Order, productImage, SiteSettings, siteLogo, siteFavicon, Profile, CustomerAdmin, tierLabels, Vendor, vendorStatusLabels, CategoryRequest, AccountEntry, Coupon, Category, categoryImage } from '../lib/supabase';
 import { PromotionsAdmin } from '../components/PromotionsAdmin';
 import { compressImageFile, compressDataUrl } from '../lib/image';
 import { useSettings } from '../context/SettingsContext';
@@ -45,7 +45,9 @@ export const Admin: React.FC = () => {
   const [vendorStats, setVendorStats] = useState<Record<string, { order_count: number; total_revenue: number; commission_rate: number; commission_amount: number }>>({});
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [customers, setCustomers] = useState<Profile[]>([]);
+  const [customers, setCustomers] = useState<CustomerAdmin[]>([]);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [customerSort, setCustomerSort] = useState<'name' | 'created_at' | 'order_count' | 'total_spent' | 'balance'>('created_at');
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [savingLogo, setSavingLogo] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -53,7 +55,7 @@ export const Admin: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importMsg, setImportMsg] = useState<string | null>(null);
-  const [ledgerCustomer, setLedgerCustomer] = useState<Profile | null>(null);
+  const [ledgerCustomer, setLedgerCustomer] = useState<CustomerAdmin | null>(null);
   const [ledgerEntries, setLedgerEntries] = useState<AccountEntry[]>([]);
   const [ledgerAmount, setLedgerAmount] = useState('');
   const [ledgerNote, setLedgerNote] = useState('');
@@ -96,8 +98,8 @@ export const Admin: React.FC = () => {
     setCategories((data as Category[]) || []);
   };
   const loadCustomers = async () => {
-    const { data } = await supabase.from('profiles').select('*').order('full_name');
-    setCustomers((data as Profile[]) || []);
+    const { data } = await supabase.rpc('get_customers_admin');
+    setCustomers((data as CustomerAdmin[]) || []);
   };
   const loadVendors = async () => {
     const { data } = await supabase.from('vendors').select('*').order('created_at', { ascending: false });
@@ -219,16 +221,40 @@ export const Admin: React.FC = () => {
     await loadCategories();
   };
 
-  const updateCustomerTier = async (c: Profile, customer_tier: Profile['customer_tier']) => {
+  const updateCustomerTier = async (c: CustomerAdmin, customer_tier: Profile['customer_tier']) => {
     await supabase.from('profiles').update({ customer_tier }).eq('id', c.id);
     setCustomers(cs => cs.map(x => x.id === c.id ? { ...x, customer_tier } : x));
   };
-  const updateCustomerDiscount = async (c: Profile, discount_percent: number) => {
+  const updateCustomerDiscount = async (c: CustomerAdmin, discount_percent: number) => {
     await supabase.from('profiles').update({ discount_percent }).eq('id', c.id);
     setCustomers(cs => cs.map(x => x.id === c.id ? { ...x, discount_percent } : x));
   };
+  const toggleCustomerBlocked = async (c: CustomerAdmin) => {
+    if (!c.is_blocked && !confirm(`לחסום את "${c.full_name || c.email || 'הלקוח'}" מביצוע הזמנות חדשות?`)) return;
+    await supabase.from('profiles').update({ is_blocked: !c.is_blocked }).eq('id', c.id);
+    setCustomers(cs => cs.map(x => x.id === c.id ? { ...x, is_blocked: !x.is_blocked } : x));
+  };
 
-  const openLedger = async (c: Profile) => {
+  const filteredCustomers = customers
+    .filter(c => {
+      const q = customerSearch.trim().toLowerCase();
+      if (!q) return true;
+      return (c.full_name || '').toLowerCase().includes(q)
+        || (c.email || '').toLowerCase().includes(q)
+        || (c.phone || '').toLowerCase().includes(q)
+        || (c.address || '').toLowerCase().includes(q);
+    })
+    .sort((a, b) => {
+      switch (customerSort) {
+        case 'name': return (a.full_name || '').localeCompare(b.full_name || '', 'he');
+        case 'order_count': return b.order_count - a.order_count;
+        case 'total_spent': return b.total_spent - a.total_spent;
+        case 'balance': return a.account_balance - b.account_balance;
+        default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+    });
+
+  const openLedger = async (c: CustomerAdmin) => {
     setLedgerCustomer(c);
     setLedgerAmount('');
     setLedgerNote('');
@@ -471,22 +497,50 @@ export const Admin: React.FC = () => {
           )}
         </div>
       ) : tab === 'customers' ? (
-        <div className="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-x-auto animate-fade-in-up">
+        <div className="animate-fade-in-up">
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <div className="relative flex-1 min-w-[220px]">
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-300">🔍</span>
+              <input value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} placeholder="חיפוש לפי שם, אימייל, טלפון או כתובת..."
+                className="w-full border border-amber-200 rounded-full pr-11 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+            </div>
+            <select value={customerSort} onChange={e => setCustomerSort(e.target.value as typeof customerSort)}
+              className="border border-amber-200 rounded-full px-4 py-2.5 text-sm font-bold text-amber-900 bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-400">
+              <option value="created_at">מיון: נרשמו לאחרונה</option>
+              <option value="name">מיון: שם (א-ת)</option>
+              <option value="order_count">מיון: הכי הרבה הזמנות</option>
+              <option value="total_spent">מיון: הכי הרבה הוצאות</option>
+              <option value="balance">מיון: יתרת חשבון (חוב קודם)</option>
+            </select>
+            <span className="text-sm text-stone-400">{filteredCustomers.length} לקוחות</span>
+          </div>
+          <div className="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-amber-900 bg-amber-50">
                 <th className="text-right px-5 py-3 font-bold">שם</th>
+                <th className="text-right px-5 py-3 font-bold">אימייל</th>
                 <th className="text-right px-5 py-3 font-bold">טלפון</th>
+                <th className="text-right px-5 py-3 font-bold">כתובת</th>
+                <th className="text-right px-5 py-3 font-bold">נרשם</th>
+                <th className="text-right px-5 py-3 font-bold">הזמנות</th>
+                <th className="text-right px-5 py-3 font-bold">סה״כ הוצאות</th>
                 <th className="text-right px-5 py-3 font-bold">סוג לקוח</th>
                 <th className="text-right px-5 py-3 font-bold">הנחה אוטומטית (%)</th>
                 <th className="text-right px-5 py-3 font-bold">חשבון תשלומים</th>
+                <th className="text-right px-5 py-3 font-bold">סטטוס</th>
               </tr>
             </thead>
             <tbody>
-              {customers.map(c => (
-                <tr key={c.id} className="border-t border-amber-50">
-                  <td className="px-5 py-3 font-bold text-amber-950">{c.full_name || '—'}</td>
+              {filteredCustomers.map(c => (
+                <tr key={c.id} className={`border-t border-amber-50 ${c.is_blocked ? 'bg-red-50/50' : ''}`}>
+                  <td className="px-5 py-3 font-bold text-amber-950 whitespace-nowrap">{c.full_name || '—'} {c.is_admin && <span className="text-xs font-normal text-amber-500">(מנהל)</span>}</td>
+                  <td className="px-5 py-3 text-stone-500" dir="ltr">{c.email || '—'}</td>
                   <td className="px-5 py-3 text-stone-500" dir="ltr">{c.phone || '—'}</td>
+                  <td className="px-5 py-3 text-stone-500 max-w-[160px] truncate" title={c.address || ''}>{c.address || '—'}</td>
+                  <td className="px-5 py-3 text-stone-400 text-xs whitespace-nowrap">{new Date(c.created_at).toLocaleDateString('he-IL')}</td>
+                  <td className="px-5 py-3 text-stone-600 text-center">{c.order_count}</td>
+                  <td className="px-5 py-3 text-stone-600 whitespace-nowrap">₪{c.total_spent.toFixed(2)}</td>
                   <td className="px-5 py-3">
                     <select value={c.customer_tier} onChange={e => updateCustomerTier(c, e.target.value as Profile['customer_tier'])}
                       className="border border-amber-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-400">
@@ -498,14 +552,26 @@ export const Admin: React.FC = () => {
                       onChange={e => updateCustomerDiscount(c, Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)))}
                       className="w-20 border border-amber-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-400" />
                   </td>
-                  <td className="px-5 py-3">
-                    <button onClick={() => openLedger(c)} className="text-sm font-bold text-amber-800 hover:underline">ניהול חשבון</button>
+                  <td className="px-5 py-3 whitespace-nowrap">
+                    <button onClick={() => openLedger(c)} className="text-sm font-bold text-amber-800 hover:underline">
+                      ניהול חשבון {c.account_balance !== 0 && (
+                        <span className={c.account_balance < 0 ? 'text-red-600' : 'text-green-700'}> (₪{c.account_balance.toFixed(2)})</span>
+                      )}
+                    </button>
+                  </td>
+                  <td className="px-5 py-3 whitespace-nowrap">
+                    <button onClick={() => toggleCustomerBlocked(c)}
+                      className={`text-xs font-bold px-3 py-1 rounded-full ${c.is_blocked ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                      {c.is_blocked ? '🚫 חסום' : '✓ פעיל'}
+                    </button>
                   </td>
                 </tr>
               ))}
+              {filteredCustomers.length === 0 && <tr><td colSpan={11} className="px-5 py-8 text-center text-stone-400">לא נמצאו לקוחות התואמים לחיפוש.</td></tr>}
             </tbody>
           </table>
-          <p className="px-5 py-4 text-xs text-stone-400">סוג "סיטונאי" משתמש במחיר הסיטונאי שהוגדר למוצר (אם קיים), אחרת מופעלת ההנחה האוטומטית. סוג "VIP" וגם "רגיל" משתמשים בהנחה האוטומטית בלבד.</p>
+          </div>
+          <p className="px-1 py-4 text-xs text-stone-400">סוג "סיטונאי" משתמש במחיר הסיטונאי שהוגדר למוצר (אם קיים), אחרת מופעלת ההנחה האוטומטית. סוג "VIP" וגם "רגיל" משתמשים בהנחה האוטומטית בלבד. לקוח "חסום" לא יוכל לשלוח הזמנות חדשות באתר.</p>
         </div>
       ) : tab === 'content' ? (
         <form onSubmit={saveContent} className="max-w-2xl space-y-6 animate-fade-in-up">
