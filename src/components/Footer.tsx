@@ -33,7 +33,7 @@ export const Footer: React.FC = () => (
       <p>© {new Date().getFullYear()} מגדנות בטעם של עוד — כל הזכויות שמורות</p>
       <p>
         <a href="https://2269702.xyz/" target="_blank" rel="noopener noreferrer" className="hover:text-amber-100 transition-colors">
-          🌐 עיצוב ובניית האתר: <span dir="ltr">2269702.xyz</span> — Website Design &amp; Development
+          🌐 עיצוב ובניית האתר: צח.נט — Website Design &amp; Development by Tzach.net
         </a>
       </p>
     </div>
