@@ -22,9 +22,26 @@ export interface Profile {
   is_admin: boolean;
   customer_tier: 'regular' | 'vip' | 'wholesale';
   discount_percent: number;
+  is_blocked?: boolean;
 }
 
 export const tierLabels: Record<string, string> = { regular: 'רגיל', vip: 'VIP', wholesale: 'סיטונאי' };
+
+export interface CustomerAdmin {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  address: string | null;
+  email: string | null;
+  customer_tier: 'regular' | 'vip' | 'wholesale';
+  discount_percent: number;
+  is_admin: boolean;
+  is_blocked: boolean;
+  created_at: string;
+  order_count: number;
+  total_spent: number;
+  account_balance: number;
+}
 
 export interface Product {
   id: string;
