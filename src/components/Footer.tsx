@@ -29,8 +29,13 @@ export const Footer: React.FC = () => (
         </ul>
       </div>
     </div>
-    <div className="border-t border-amber-900/60 py-5 text-center text-xs text-amber-200/50">
-      © {new Date().getFullYear()} מגדנות בטעם של עוד — כל הזכויות שמורות
+    <div className="border-t border-amber-900/60 py-5 text-center text-xs text-amber-200/50 space-y-1.5">
+      <p>© {new Date().getFullYear()} מגדנות בטעם של עוד — כל הזכויות שמורות</p>
+      <p>
+        <a href="https://2269702.xyz/" target="_blank" rel="noopener noreferrer" className="hover:text-amber-100 transition-colors">
+          🌐 עיצוב ובניית האתר: <span dir="ltr">2269702.xyz</span> — Website Design &amp; Development
+        </a>
+      </p>
     </div>
   </footer>
 );
