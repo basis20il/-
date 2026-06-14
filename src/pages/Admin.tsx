@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase, Product, Order, productImage, SiteSettings, siteLogo, siteFavicon, Profile, CustomerAdmin, tierLabels, Vendor, vendorStatusLabels, CategoryRequest, AccountEntry, Coupon, Category, categoryImage } from '../lib/supabase';
 import { PromotionsAdmin } from '../components/PromotionsAdmin';
+import { EmojiPicker } from '../components/EmojiPicker';
 import { compressImageFile, compressDataUrl } from '../lib/image';
 import { useSettings } from '../context/SettingsContext';
 
@@ -620,8 +621,7 @@ export const Admin: React.FC = () => {
             <div className="grid grid-cols-4 gap-3">
               <div>
                 <label className="block text-sm font-bold text-amber-950 mb-1.5">אימוג'י</label>
-                <input value={content.announce_emoji} onChange={e => setContent({ ...content, announce_emoji: e.target.value })}
-                  placeholder="📣" className="w-full border border-amber-200 rounded-xl px-4 py-2 text-center focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                <EmojiPicker value={content.announce_emoji} onChange={v => setContent({ ...content, announce_emoji: v })} placeholder="📣" />
               </div>
               <div className="col-span-3">
                 <label className="block text-sm font-bold text-amber-950 mb-1.5">כותרת ההודעה</label>
@@ -675,8 +675,7 @@ export const Admin: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-bold text-amber-950 mb-1.5">אימוג'י</label>
-                <input value={catForm.icon} onChange={e => setCatForm({ ...catForm, icon: e.target.value })}
-                  placeholder="🎂" className="w-full border border-amber-200 rounded-xl px-4 py-2 text-center focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                <EmojiPicker value={catForm.icon} onChange={v => setCatForm({ ...catForm, icon: v })} placeholder="🎂" />
               </div>
               <div>
                 <label className="block text-sm font-bold text-amber-950 mb-1.5">סדר הצגה</label>
